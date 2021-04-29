@@ -4,10 +4,9 @@
 #include <AMReX.H>
 
 #include <burner.H>
+#include <conductivity.H>
 #include <eos.H>
 #include <network.H>
-
-#include <torch/torch.h>
 
 
 // state indices
@@ -25,10 +24,10 @@ class ReactionSystem() {
   public:
   
     // constructor
-    ReactionSystem() = default;
+    ReactionSystem();
 
     // destructor
-    ~ReactionSystem() = default;
+    virtual ~ReactionSystem();
 
     // initialize class variables
     void init(const int n_cell, const BoxArray& ba,
@@ -40,10 +39,11 @@ class ReactionSystem() {
                     bool const_state = true);
 
     // compute the solution
-    void sol(Vector<MultiFab>& state_out);
+    void sol(Vector<MultiFab>& y);
 
     // compute the rhs
-    void rhs(Vector<MultiFab>& dydx);
+    void rhs(const Vector<MultiFab>& y,
+             Vector<MultiFab>& dydt);
 
     
     /* PRIVATE VARIABLES */
