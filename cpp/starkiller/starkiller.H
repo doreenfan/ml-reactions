@@ -2,6 +2,7 @@
 #define STARKILLER_H_
 
 #include <AMReX.H>
+#include <AMReX_MultiFabUtil.H>
 
 #include <burner.H>
 #include <conductivity.H>
@@ -18,9 +19,7 @@ constexpr int RHOE = 3;
 constexpr int FS = 4;  // FirstSpec
 
 
-using namespace amrex;
-
-class ReactionSystem() {
+class ReactionSystem {
   public:
   
     // constructor
@@ -30,34 +29,34 @@ class ReactionSystem() {
     virtual ~ReactionSystem();
 
     // initialize class variables
-    void init(const int n_cell, const BoxArray& ba,
-              const DistributionMapping& dm);
+    void init(const int n_cell, const amrex::BoxArray& ba,
+              const amrex::DistributionMapping& dm);
 
     // initialize state
-    void init_state(const Real dens, const Real temp,
-                    const Real xhe, const Real end_time,
+    void init_state(const amrex::Real dens, const amrex::Real temp,
+                    const amrex::Real xhe, const amrex::Real end_time,
                     bool const_state = true);
 
     // compute the solution
-    void sol(Vector<MultiFab>& y);
+    void sol(amrex::Vector<amrex::MultiFab>& y);
 
     // compute the rhs
-    void rhs(const Vector<MultiFab>& y,
-             Vector<MultiFab>& dydt);
+    void rhs(const amrex::Vector<amrex::MultiFab>& y,
+             amrex::Vector<amrex::MultiFab>& dydt);
 
     
     /* PRIVATE VARIABLES */
     
-    Vector<MultiFab> state;
+    amrex::Vector<amrex::MultiFab> state;
     int size;
     
     // these are defined in 'starkiller.cpp'
     
     // normalization values
-    Real time_scale;
-    Real density_scale;
-    Real temperature_scale;
-    Real energy_scale;
-}
+    amrex::Real time_scale;
+    amrex::Real density_scale;
+    amrex::Real temperature_scale;
+    amrex::Real energy_scale;
+};
 
 #endif

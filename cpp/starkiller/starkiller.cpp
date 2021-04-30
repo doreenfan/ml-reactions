@@ -1,6 +1,7 @@
-#ifndef STARKILLER_H_
 #include <starkiller.H>
-#endif
+#include <AMReX_VisMF.H>
+
+using namespace amrex;
 
 // constructor
 ReactionSystem::ReactionSystem() = default;
@@ -9,8 +10,8 @@ ReactionSystem::ReactionSystem() = default;
 ReactionSystem::~ReactionSystem() = default;
 
 // initialize variables
-void ReactionSystem::init(const int train_size, const BoxArray& ba,
-                          const DistributionMapping& dm) {
+void ReactionSystem::init(const int train_size, const amrex::BoxArray& ba,
+                          const amrex::DistributionMapping& dm) {
     // initialize multifabs
     size = train_size;
     state.resize(size);
@@ -58,7 +59,7 @@ void ReactionSystem::init_state(const Real dens, const Real temp,
     int he_species = 0;
     for (int i = 0; i < NumSpec; ++i) {
         std::string spec_string = short_spec_names_cxx[i];
-        if (spec_string == "he4") {
+        if (spec_string == "He4") {
             he_species = i + FS;
             break;
         }
@@ -96,7 +97,7 @@ void ReactionSystem::init_state(const Real dens, const Real temp,
             });
         }
     }
-    VisMF::Write("plt_train0", state[0]);
+    VisMF::Write(state[0], "plt_train0");
     //WriteSingleLevelPlotfile("plt_train", state[0], {"rho"}, geom, 0.0, 0);
 
 }
@@ -107,7 +108,7 @@ void ReactionSystem::sol(Vector<MultiFab>& y) {
     y.resize(size);
 
     for (int i = 0; i < size; i++){
-        y[i].define(state.BoxArray(), state.DistributionMapping(), NSCAL, 0);
+        y[i].define(state[i].boxArray(), state[i].DistributionMap(), NSCAL, 0);
         MultiFab::Copy(y[i], state[i], DT, DT, 1, 0);
     }
 
@@ -136,13 +137,12 @@ void ReactionSystem::sol(Vector<MultiFab>& y) {
                 burner(state_out, state_arr(i,j,k,DT)*time_scale);
 
                 // pass the solution values
-                y_arr(i,j,k,TEMP) = state_out.T / temp_scale;
+                y_arr(i,j,k,TEMP) = state_out.T / temperature_scale;
                 y_arr(i,j,k,RHOE) = state_out.e / energy_scale;
                 for (int n = 0; n < NumSpec; ++n) {
                     y_arr(i,j,k,FS+n) = state_out.xn[n];
                 }
                 y_arr(i,j,k,RHO) = state_out.rho;
-
             });
         }
     }
@@ -158,16 +158,17 @@ void ReactionSystem::rhs(const Vector<MultiFab>& y,
     dydt.resize(size);
 
     for (int i = 0; i < size; i++){
-        dydt[i].define(y.BoxArray(), y.DistributionMapping(), NSCAL, 0);
+        dydt[i].define(y[i].boxArray(), y[i].DistributionMap(), NSCAL, 0);
         dydt[i].setVal(0.0);
     }
 
     // evaluate the system solution
     for (int l = 0; l < size; l++) {
-        for (MFIter mfi(state[l], TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+        for (MFIter mfi(y[l], TilingIfNotGPU()); mfi.isValid(); ++mfi) {
             const auto tileBox = mfi.tilebox();
 
-            const Array4<Real> y_arr = y[l].array(mfi);
+            const Array4<const Real> y_arr = y[l].array(mfi);
+            const Array4<const Real> state_arr = state[l].array(mfi);
             const Array4<Real> dydt_arr = dydt[l].array(mfi);
 
             ParallelFor(tileBox, [=] AMREX_GPU_DEVICE(int i, int j, int k) {
@@ -176,7 +177,7 @@ void ReactionSystem::rhs(const Vector<MultiFab>& y,
 
                 // set density & temperature
                 state_in.rho = y_arr(i,j,k,RHO);
-                state_in.T = amrex::max(y_arr(i,j,k,TEMP)*temp_scale, 0.0);
+                state_in.T = amrex::max(y_arr(i,j,k,TEMP)*temperature_scale, 0.0);
 
                 // mass fractions
                 for (int n = 0; n < NumSpec; ++n) {
@@ -192,10 +193,13 @@ void ReactionSystem::rhs(const Vector<MultiFab>& y,
                 for (int n = 0; n < NumSpec; ++n) {
                     dydt_arr(i,j,k,FS+n) = aion[n]*ydot(1+n) * (time_scale);
                 }
-                dydt_arr(i,j,k,TEMP) = ydot(net_itemp);
-                dydt_arr(i,j,k,RHOE) = ydot(net_ienuc);
+                dydt_arr(i,j,k,RHOE) = ydot(net_ienuc) * (time_scale/energy_scale);
+                // C++ networks do not have temperature_rhs; only F90 do
+                // dydt_arr(i,j,k,TEMP) = ydot(net_itemp) * (time_scale/temperature_scale);
+                // instead, compute average d(temp)/dt
+                dydt_arr(i,j,k,TEMP) = (y_arr(i,j,k,TEMP) - state_arr(i,j,k,TEMP))
+                    / state_arr(i,j,k,DT);
                 dydt_arr(i,j,k,RHO) = state_in.rho;
-
             });
         }
     }
