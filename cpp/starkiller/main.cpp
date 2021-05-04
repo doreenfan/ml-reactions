@@ -48,11 +48,16 @@ int main (int argc, char* argv[])
         ba.maxSize(max_grid_size);
         DistributionMapping dm{ba};
 
-        // initialize <size_train> number of multifabs
+        // initialize training multifabs
         ReactionSystem system;
         system.init(size_train, ba, dm);
         system.init_state(dens, temp, xhe, end_time/*,true*/);
 
+        // compute training solutions
+        Vector<MultiFab> y;
+        Vector<MultiFab> ydot;
+        system.sol(y);
+        system.rhs(y, ydot);
 
         //std::cout<<"Tensor example from PYTORCH!"<<std::endl;
         //torch::Tensor tensor = torch::rand({2, 3});

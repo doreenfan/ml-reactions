@@ -1,7 +1,13 @@
 #include <starkiller.H>
+#include <starkiller_F.H>
+
+#include <extern_parameters.H>
+
 #include <AMReX_VisMF.H>
 
 using namespace amrex;
+
+std::string ReactionSystem::probin_file = "probin";
 
 // constructor
 ReactionSystem::ReactionSystem() = default;
@@ -19,17 +25,48 @@ void ReactionSystem::init(const int train_size, const amrex::BoxArray& ba,
         state[i].define(ba, dm, NSCAL, 0);
         state[i].setVal(0.0);
     }
-    
-    // initialize Microphysics
+
+    // initialize the external runtime parameters
+    init_extern();
+
+    // initialize network, eos, conductivity
     network_init();   // includes actual_rhs_init()
     eos_init();
     conductivity_init();
+}
+
+// initialize extern parameters
+void ReactionSystem::init_extern() {
+    // initialize the external runtime parameters -- these will
+    // live in the probin the probin
+    if (ParallelDescriptor::IOProcessor()) {
+        std::cout << "reading extern runtime parameters ..." << std::endl;
+    }
+
+    const int probin_file_length = probin_file.length();
+    Vector<int> probin_file_name(probin_file_length);
+
+    for (int i = 0; i < probin_file_length; i++) {
+        probin_file_name[i] = probin_file[i];
+    }
+
+    // read them in in Fortran from the probin file
+    extern_init(probin_file_name.dataPtr(),&probin_file_length);
+
+    // grab them from Fortran to C++; then read any C++ parameters directly
+    // from inputs (via ParmParse)
+    init_extern_parameters();
+
 }
 
 // initialize state
 void ReactionSystem::init_state(const Real dens, const Real temp,
                                 const Real xhe, const Real end_time,
                                 bool const_state) {
+    if (ParallelDescriptor::IOProcessor()) {
+        std::cout << "initializing initial conditions ..." << std::endl;
+    }
+
     time_scale = 1.0e-6;
     density_scale = dens;
     temperature_scale = temp * 10;
@@ -51,6 +88,11 @@ void ReactionSystem::init_state(const Real dens, const Real temp,
     eos(eos_input_rt, eos_state, true);
 
     energy_scale = eos_state.e;
+
+    // output normalization values
+    Print() << "density_scale = " << density_scale << std::endl;
+    Print() << "temperature_scale = " << temperature_scale << std::endl;
+    Print() << "energy_scale = " << energy_scale << std::endl;
 
     // initial conditions
     const bool const_flag = const_state;
@@ -97,13 +139,17 @@ void ReactionSystem::init_state(const Real dens, const Real temp,
             });
         }
     }
-    VisMF::Write(state[0], "plt_train0");
+    VisMF::Write(state[0], "plt_x0");
     //WriteSingleLevelPlotfile("plt_train", state[0], {"rho"}, geom, 0.0, 0);
 
 }
 
 // Get the solutions at times dt (stored in state)
 void ReactionSystem::sol(Vector<MultiFab>& y) {
+    if (ParallelDescriptor::IOProcessor()) {
+        std::cout << "computing exact solution ..." << std::endl;
+    }
+
     // initialize y
     y.resize(size);
 
@@ -134,7 +180,8 @@ void ReactionSystem::sol(Vector<MultiFab>& y) {
                 }
 
                 // integrate to get the output state
-                burner(state_out, state_arr(i,j,k,DT)*time_scale);
+                Real dt = state_arr(i,j,k,DT)*time_scale;
+                integrator(state_out, dt);
 
                 // pass the solution values
                 y_arr(i,j,k,TEMP) = state_out.T / temperature_scale;
@@ -146,6 +193,7 @@ void ReactionSystem::sol(Vector<MultiFab>& y) {
             });
         }
     }
+    VisMF::Write(y[0], "plt_y0");
 }
 
 // Get the solution rhs given state y
@@ -154,6 +202,10 @@ void ReactionSystem::sol(Vector<MultiFab>& y) {
 // f = dys/dts = (dy/y_scale) / (dt/t_scale) = (dy/dt) * (t_scale / y_scale)
 void ReactionSystem::rhs(const Vector<MultiFab>& y,
                          Vector<MultiFab>& dydt) {
+    if (ParallelDescriptor::IOProcessor()) {
+        std::cout << "computing rhs ..." << std::endl;
+    }
+
     // initialize dydt
     dydt.resize(size);
 
@@ -193,14 +245,15 @@ void ReactionSystem::rhs(const Vector<MultiFab>& y,
                 for (int n = 0; n < NumSpec; ++n) {
                     dydt_arr(i,j,k,FS+n) = aion[n]*ydot(1+n) * (time_scale);
                 }
-                dydt_arr(i,j,k,RHOE) = ydot(net_ienuc) * (time_scale/energy_scale);
+                dydt_arr(i,j,k,RHOE) = ydot(net_ienuc) * (time_scale / energy_scale);
                 // C++ networks do not have temperature_rhs; only F90 do
-                // dydt_arr(i,j,k,TEMP) = ydot(net_itemp) * (time_scale/temperature_scale);
+                // dydt_arr(i,j,k,TEMP) = ydot(net_itemp) * (time_scale / temperature_scale);
                 // instead, compute average d(temp)/dt
-                dydt_arr(i,j,k,TEMP) = (y_arr(i,j,k,TEMP) - state_arr(i,j,k,TEMP))
-                    / state_arr(i,j,k,DT);
+                dydt_arr(i,j,k,TEMP) = (y_arr(i,j,k,TEMP)*temperature_scale - state_arr(i,j,k,TEMP))
+                    / (state_arr(i,j,k,DT) * time_scale);
                 dydt_arr(i,j,k,RHO) = state_in.rho;
             });
         }
     }
+    VisMF::Write(dydt[0], "plt_dydt0");
 }

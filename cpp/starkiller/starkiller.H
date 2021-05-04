@@ -32,6 +32,9 @@ class ReactionSystem {
     void init(const int n_cell, const amrex::BoxArray& ba,
               const amrex::DistributionMapping& dm);
 
+    // initialize extern parameters
+    void init_extern();
+
     // initialize state
     void init_state(const amrex::Real dens, const amrex::Real temp,
                     const amrex::Real xhe, const amrex::Real end_time,
@@ -51,7 +54,8 @@ class ReactionSystem {
     int size;
     
     // these are defined in 'starkiller.cpp'
-    
+    static std::string probin_file;
+
     // normalization values
     amrex::Real time_scale;
     amrex::Real density_scale;
