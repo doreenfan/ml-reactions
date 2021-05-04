@@ -1,4 +1,6 @@
 #include <starkiller.H>
+#include <nn.H>
+
 #include <AMReX_ParmParse.H>
 
 #include <torch/torch.h>
