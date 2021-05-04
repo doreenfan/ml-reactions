@@ -1,7 +1,7 @@
 #include <starkiller.H>
 #include <AMReX_ParmParse.H>
 
-// #include <torch/torch.h>
+#include <torch/torch.h>
 
 using namespace amrex;
 
