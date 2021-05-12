@@ -4,6 +4,7 @@ CEXE_sources += nn.cpp
 
 CEXE_headers += starkiller.H
 CEXE_headers += nn.H
+CEXE_headesr += dataset.H
 
 FEXE_headers += starkiller_F.H
 F90EXE_sources += starkiller_nd.F90

@@ -12,12 +12,28 @@ std::string ReactionSystem::probin_file = "probin";
 // constructor
 ReactionSystem::ReactionSystem() = default;
 
+ReactionSystem::ReactionSystem(const ReactionSystem& src)
+{
+    size = src.size;
+    state.resize(size);
+    for (int i = 0; i < size; i++) {
+        state[i].define(src.state[i].boxArray(), src.state[i].DistributionMap(), NSCAL, 0);
+        MultiFab::Copy(state[i], src.state[i], 0, 0, NSCAL, 0);
+    }
+
+    time_scale = src.time_scale;
+    density_scale = src.density_scale;
+    temperature_scale = src.temperature_scale;
+    energy_scale = src.energy_scale;
+}
+
 // destructor
 ReactionSystem::~ReactionSystem() = default;
 
 // initialize variables
 void ReactionSystem::init(const int train_size, const amrex::BoxArray& ba,
-                          const amrex::DistributionMapping& dm) {
+                          const amrex::DistributionMapping& dm)
+{
     // initialize multifabs
     size = train_size;
     state.resize(size);
@@ -26,17 +42,24 @@ void ReactionSystem::init(const int train_size, const amrex::BoxArray& ba,
         state[i].setVal(0.0);
     }
 
-    // initialize the external runtime parameters
-    init_extern();
+    static bool firstCall = true;
 
-    // initialize network, eos, conductivity
-    network_init();   // includes actual_rhs_init()
-    eos_init();
-    conductivity_init();
+    if (firstCall) {
+        // initialize the external runtime parameters
+        init_extern();
+
+        // initialize network, eos, conductivity
+        network_init();   // includes actual_rhs_init()
+        eos_init();
+        conductivity_init();
+
+        firstCall = false;
+    }
 }
 
 // initialize extern parameters
-void ReactionSystem::init_extern() {
+void ReactionSystem::init_extern()
+{
     // initialize the external runtime parameters -- these will
     // live in the probin the probin
     if (ParallelDescriptor::IOProcessor()) {
@@ -62,7 +85,8 @@ void ReactionSystem::init_extern() {
 // initialize state
 void ReactionSystem::init_state(const Real dens, const Real temp,
                                 const Real xhe, const Real end_time,
-                                bool const_state) {
+                                bool const_state)
+{
     if (ParallelDescriptor::IOProcessor()) {
         std::cout << "initializing initial conditions ..." << std::endl;
     }
@@ -145,7 +169,8 @@ void ReactionSystem::init_state(const Real dens, const Real temp,
 }
 
 // Get the solutions at times dt (stored in state)
-void ReactionSystem::sol(Vector<MultiFab>& y) {
+void ReactionSystem::sol(Vector<MultiFab>& y)
+{
     if (ParallelDescriptor::IOProcessor()) {
         std::cout << "computing exact solution ..." << std::endl;
     }
@@ -201,7 +226,8 @@ void ReactionSystem::sol(Vector<MultiFab>& y) {
 // scaled time : ts = t / t_scale
 // f = dys/dts = (dy/y_scale) / (dt/t_scale) = (dy/dt) * (t_scale / y_scale)
 void ReactionSystem::rhs(const Vector<MultiFab>& y,
-                         Vector<MultiFab>& dydt) {
+                         Vector<MultiFab>& dydt)
+{
     if (ParallelDescriptor::IOProcessor()) {
         std::cout << "computing rhs ..." << std::endl;
     }

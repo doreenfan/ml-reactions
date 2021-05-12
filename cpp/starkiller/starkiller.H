@@ -12,18 +12,20 @@
 
 // state indices
 constexpr int NSCAL = 4 + NumSpec;
-constexpr int DT = 0;
-constexpr int RHO = 1;
+constexpr int RHO = 0;
+constexpr int DT = 1;
 constexpr int TEMP = 2;
 constexpr int RHOE = 3;
 constexpr int FS = 4;  // FirstSpec
 
 
-class ReactionSystem {
+class ReactionSystem
+{
   public:
   
     // constructor
     ReactionSystem();
+    ReactionSystem(const ReactionSystem& src);
 
     // destructor
     virtual ~ReactionSystem();
