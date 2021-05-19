@@ -57,12 +57,6 @@ class ReactionSystem
     
     // these are defined in 'starkiller.cpp'
     static std::string probin_file;
-
-    // normalization values
-    amrex::Real time_scale;
-    amrex::Real density_scale;
-    amrex::Real temperature_scale;
-    amrex::Real energy_scale;
 };
 
 #endif

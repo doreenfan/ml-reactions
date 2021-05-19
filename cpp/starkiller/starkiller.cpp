@@ -20,11 +20,6 @@ ReactionSystem::ReactionSystem(const ReactionSystem& src)
         state[i].define(src.state[i].boxArray(), src.state[i].DistributionMap(), NSCAL, 0);
         MultiFab::Copy(state[i], src.state[i], 0, 0, NSCAL, 0);
     }
-
-    time_scale = src.time_scale;
-    density_scale = src.density_scale;
-    temperature_scale = src.temperature_scale;
-    energy_scale = src.energy_scale;
 }
 
 // destructor
@@ -91,37 +86,9 @@ void ReactionSystem::init_state(const Real dens, const Real temp,
         std::cout << "initializing initial conditions ..." << std::endl;
     }
 
-    time_scale = 1.0e-6;
-    density_scale = dens;
-    temperature_scale = temp * 10;
-
-    // do an eos call to set internal energy scale
-    eos_t eos_state;
-    //eos_state.rho = dens;
-    //eos_state.T = temp;
-
-    // pick a composition for normalize of Ye = 0.5
-    // w/ abar = 12, zbar = 6
-    eos_state.abar = 12.0;
-    eos_state.zbar = 6.0;
-    eos_state.y_e = eos_state.zbar / eos_state.abar;
-    eos_state.mu_e = 1.0 / eos_state.y_e;
-
-    // use_raw_inputs uses only abar, zbar, y_e, mu_e for the EOS call
-    // instead of setting those from the mass fraction
-    eos(eos_input_rt, eos_state, true);
-
-    energy_scale = eos_state.e;
-
-    // output normalization values
-    Print() << "density_scale = " << density_scale << std::endl;
-    Print() << "temperature_scale = " << temperature_scale << std::endl;
-    Print() << "energy_scale = " << energy_scale << std::endl;
-
-    // initial conditions
     const bool const_flag = const_state;
 
-    // find index of he4
+    // find index of He4
     int he_species = 0;
     for (int i = 0; i < NumSpec; ++i) {
         std::string spec_string = short_spec_names_cxx[i];
@@ -205,12 +172,12 @@ void ReactionSystem::sol(Vector<MultiFab>& y)
                 }
 
                 // integrate to get the output state
-                Real dt = state_arr(i,j,k,DT)*time_scale;
+                Real dt = state_arr(i,j,k,DT);
                 integrator(state_out, dt);
 
                 // pass the solution values
-                y_arr(i,j,k,TEMP) = state_out.T / temperature_scale;
-                y_arr(i,j,k,RHOE) = state_out.e / energy_scale;
+                y_arr(i,j,k,TEMP) = state_out.T;
+                y_arr(i,j,k,RHOE) = state_out.e;
                 for (int n = 0; n < NumSpec; ++n) {
                     y_arr(i,j,k,FS+n) = state_out.xn[n];
                 }
@@ -222,9 +189,6 @@ void ReactionSystem::sol(Vector<MultiFab>& y)
 }
 
 // Get the solution rhs given state y
-// scaled solution: ys = y / y_scale
-// scaled time : ts = t / t_scale
-// f = dys/dts = (dy/y_scale) / (dt/t_scale) = (dy/dt) * (t_scale / y_scale)
 void ReactionSystem::rhs(const Vector<MultiFab>& y,
                          Vector<MultiFab>& dydt)
 {
@@ -255,7 +219,7 @@ void ReactionSystem::rhs(const Vector<MultiFab>& y,
 
                 // set density & temperature
                 state_in.rho = y_arr(i,j,k,RHO);
-                state_in.T = amrex::max(y_arr(i,j,k,TEMP)*temperature_scale, 0.0);
+                state_in.T = amrex::max(y_arr(i,j,k,TEMP), 0.0);
 
                 // mass fractions
                 for (int n = 0; n < NumSpec; ++n) {
@@ -269,14 +233,13 @@ void ReactionSystem::rhs(const Vector<MultiFab>& y,
 
                 // pass the solution values
                 for (int n = 0; n < NumSpec; ++n) {
-                    dydt_arr(i,j,k,FS+n) = aion[n]*ydot(1+n) * (time_scale);
+                    dydt_arr(i,j,k,FS+n) = aion[n]*ydot(1+n);
                 }
-                dydt_arr(i,j,k,RHOE) = ydot(net_ienuc) * (time_scale / energy_scale);
+                dydt_arr(i,j,k,RHOE) = ydot(net_ienuc);
                 // C++ networks do not have temperature_rhs; only F90 do
-                // dydt_arr(i,j,k,TEMP) = ydot(net_itemp) * (time_scale / temperature_scale);
+                // dydt_arr(i,j,k,TEMP) = ydot(net_itemp);
                 // instead, compute average d(temp)/dt
-                dydt_arr(i,j,k,TEMP) = (y_arr(i,j,k,TEMP)*temperature_scale - state_arr(i,j,k,TEMP))
-                    / (state_arr(i,j,k,DT) * time_scale);
+                dydt_arr(i,j,k,TEMP) = (y_arr(i,j,k,TEMP) - state_arr(i,j,k,TEMP)) / state_arr(i,j,k,DT);
                 dydt_arr(i,j,k,RHO) = state_in.rho;
             });
         }
