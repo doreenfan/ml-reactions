@@ -236,10 +236,7 @@ void ReactionSystem::rhs(const Vector<MultiFab>& y,
                     dydt_arr(i,j,k,FS+n) = aion[n]*ydot(1+n);
                 }
                 dydt_arr(i,j,k,RHOE) = ydot(net_ienuc);
-                // C++ networks do not have temperature_rhs; only F90 do
-                // dydt_arr(i,j,k,TEMP) = ydot(net_itemp);
-                // instead, compute average d(temp)/dt
-                dydt_arr(i,j,k,TEMP) = (y_arr(i,j,k,TEMP) - state_arr(i,j,k,TEMP)) / state_arr(i,j,k,DT);
+                dydt_arr(i,j,k,TEMP) = state_in.T;
                 dydt_arr(i,j,k,RHO) = state_in.rho;
             });
         }

@@ -19,6 +19,11 @@ struct HiddenNetImpl : public torch::nn::Module
         }
         hidden_layer = register_module("hidden", hidden_layer);
         output_layer = register_module("output", torch::nn::Linear(n_hidden, n_dependent));
+
+        single_layer = register_module("single", torch::nn::Linear(n_independent, n_dependent));
+
+        // dropout layer
+        dropout_layer = register_module("dropout", torch::nn::Dropout(0.25));
     };
 
     // Implement the forward method.
@@ -26,20 +31,24 @@ struct HiddenNetImpl : public torch::nn::Module
     {
         // Note: all activation layers are tanh
         // will FIX to allow user defined activations
-        x = torch::tanh(input_layer->forward(x));
+        auto y = torch::tanh(input_layer->forward(x));
         for (auto& layer : *hidden_layer) {
-            x = torch::tanh(layer->as<torch::nn::Linear>()->forward(x));
+            y = torch::tanh(layer->as<torch::nn::Linear>()->forward(y));
+            y = dropout_layer->forward(y);
         }
-        x = torch::tanh(output_layer->forward(x));
+        y = torch::relu(output_layer->forward(y));
 
-        return x;
+        x = torch::relu(single_layer->forward(x));
+
+        return y + x;
     };
 
     // Use one of many "standard library" modules.
     torch::nn::Linear input_layer{nullptr};
     torch::nn::Linear output_layer{nullptr};
     torch::nn::ModuleList hidden_layer;
-
+    torch::nn::Linear single_layer{nullptr};
+    torch::nn::Dropout dropout_layer;
 };
 
 TORCH_MODULE(HiddenNet);
