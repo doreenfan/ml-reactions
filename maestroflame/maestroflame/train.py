@@ -117,9 +117,12 @@ class NuclearReactionML:
                 react_data = ReactDataset(data_path, input_prefix, output_prefix, plotfile_prefix, DEBUG_MODE=DEBUG_MODE)
 
                 #Normalize density, temperature, and enuc
-                dens_fac = torch.max(react_data.input_data[:, 14, :])
-                temp_fac = torch.max(react_data.input_data[:, 15, :])
-                enuc_fac = torch.max(react_data.output_data[:, 13, :])
+#                 dens_fac = torch.max(react_data.input_data[:, 14, :])
+#                 temp_fac = torch.max(react_data.input_data[:, 15, :])
+#                 enuc_fac = torch.max(react_data.output_data[:, 13, :])
+                dens_fac = torch.tensor(0.5e8);
+                temp_fac = torch.tensor(3.0e9);
+                enuc_fac = torch.tensor(1.4e13);
                 react_data.input_data[:, 14, :]  = react_data.input_data[:, 14, :]/dens_fac
                 react_data.input_data[:, 15, :]  = react_data.input_data[:, 15, :]/temp_fac
                 react_data.output_data[:, 13, :] = react_data.output_data[:, 13, :]/enuc_fac
@@ -384,9 +387,12 @@ class NuclearReactionPinn:
                 self.nnuc = int(react_data.output_data.shape[1]/2 - 1)
 
                 #Normalize density, temperature, and enuc
-                dens_fac = torch.max(react_data.input_data[:, self.nnuc+1, :])
-                temp_fac = torch.max(react_data.input_data[:, self.nnuc+2, :])
-                enuc_fac = torch.max(react_data.output_data[:, self.nnuc, :])
+#                 dens_fac = torch.max(react_data.input_data[:, self.nnuc+1, :])
+#                 temp_fac = torch.max(react_data.input_data[:, self.nnuc+2, :])
+#                 enuc_fac = torch.max(react_data.output_data[:, self.nnuc, :])
+                dens_fac = torch.tensor(0.5e8);
+                temp_fac = torch.tensor(3.0e9);
+                enuc_fac = torch.tensor(1.4e13);
                 enuc_dot_fac = torch.max(react_data.output_data[:, 2*(self.nnuc+1) - 1, :])
 
 

@@ -85,9 +85,11 @@ class ReactDataset(Dataset):
                 dt = ds.current_time.to_value()
                 #Store data each row corresponds to data acros the grid of a different field.
                 if self.do_flame_cut:
-                    flame_loc = self.get_flame_loc(file)
-                    half = yt.YTArray(0.25, 'cm')
-                    ad = ds.r[:, flame_loc-half:flame_loc+half]
+#                     flame_loc = self.get_flame_loc(file)
+#                     half = yt.YTArray(0.25, 'cm')
+#                     ad = ds.r[:, flame_loc-half:flame_loc+half]
+                    yloc = yt.YTArray(2.8, 'cm')
+                    ad = ds.r[0.3:0.31, 0:yloc]
                 else:
                     ad = ds.all_data()
 
@@ -128,7 +130,8 @@ class ReactDataset(Dataset):
                     #We need to get more data.
                     elif data.shape[2] < NUM_GRID_CELLS:
                         #double size of cut
-                        ad = ds.r[:, flame_loc-2*half:flame_loc+2*half]
+#                         ad = ds.r[:, flame_loc-2*half:flame_loc+2*half]
+                        ad = ds.r[0.3:0.31, :]
                         for i,field in enumerate(ds._field_list):
                             if i == 0:
                                 data = np.zeros([len(ds._field_list), len(ad[field])])

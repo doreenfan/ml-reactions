@@ -66,6 +66,61 @@ def log_loss(prediction, target):
     return enuc_loss + X_loss
 
 
+def log_loss_spec(prediction, target):
+    # Log Loss Function for all species except C12[1], O16[2], Mg24[4]
+    # If there are negative values in X we use MSE
+    # Enuc stays with MSE because its normalized
+
+    # species that use linear loss
+    spec_lin = [1, 2, 4]
+    # species that use log loss
+    spec_log = [0, 3] + list(range(5,13))
+
+    # X is not allowed to be negative. Enuc is
+    X_lin, X_log = prediction[:, spec_lin], prediction[:, spec_log]
+    X_lin_target, X_log_target = target[:, spec_lin], target[:, spec_log]
+    enuc = prediction[:, 13]
+    enuc_target = target[:, 13]
+
+    L = nn.MSELoss()
+
+    enuc_loss = L(enuc, enuc_target)
+
+
+    # we want to penalize negative numbers for
+    # species that use linear loss
+    if torch.sum(X_lin < 0) > 0:
+        # how much do we hate negative numbers?
+        factor = 1000 # a lot
+
+        value = torch.tensor([0.], device=device)
+
+        # greater than zero we apply mse loss
+        A = my_heaviside(X_lin, value)
+
+        # less than zero we apply large mse loss
+        B = -my_heaviside(X_lin, value) + 1
+
+        linear_loss =  torch.sum(A * L(X_lin, X_lin_target) + factor * B * L(X_lin, X_lin_target))
+
+    else:
+        linear_loss = L(X_lin, X_lin_target)
+
+
+    # if there are negative numbers we cant use log on mass fractions
+    if torch.sum(X_log < 0) > 0:
+        # how much do we hate negative log numbers?
+        factor = 10e6 # a lot a lot
+
+        log_loss = factor * L(X_log, X_log_target)
+
+    else:
+        log_loss = torch.abs(.01*L(torch.log(X_log), torch.log(X_log_target)))
+
+
+    return enuc_loss + linear_loss + log_loss
+
+
 
 
 def rms_weighted_error(input, target, solution, atol=1e-6, rtol=1e-6):
