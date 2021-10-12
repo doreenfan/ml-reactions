@@ -86,8 +86,11 @@ class ReactDataset2(Dataset):
                 #Store data each row corresponds to data acros the grid of a different field.
                 if self.do_flame_cut:
                     flame_loc = self.get_flame_loc(file)
-                    half = yt.YTArray(0.25, 'cm')
-                    ad = ds.r[0.3:0.325, flame_loc-half:flame_loc+half]
+                    half = yt.YTArray(1.5, 'cm')
+                    lbound = yt.YTArray(0.1, 'cm')
+                    if flame_loc-half > lbound:
+                        lbound = flame_loc-half
+                    ad = ds.r[0.3:0.31, lbound:flame_loc+half]
                 else:
                     ad = ds.all_data()
 
@@ -128,7 +131,9 @@ class ReactDataset2(Dataset):
                     #We need to get more data.
                     elif data.shape[2] < NUM_GRID_CELLS:
                         #double size of cut
-                        ad = ds.r[0.3:0.325, flame_loc-2*half:flame_loc+2*half]
+                        if flame_loc-2*half > lbound:
+                            lbound = flame_loc-2*half
+                        ad = ds.r[0.3:0.31, lbound:flame_loc+2*half]
                         for i,field in enumerate(ds._field_list):
                             if i == 0:
                                 data = np.zeros([len(ds._field_list), len(ad[field])])
@@ -233,8 +238,11 @@ class ReactDataset2(Dataset):
         flame_loc = profile.x[index]
         # rs.append(flame_loc)
 
-        half = yt.YTArray(0.25, 'cm')
-        flame_slice = ds.r[0.3:0.325, flame_loc-2*half:flame_loc+half]
+        half = yt.YTArray(1.5, 'cm')
+        lbound = yt.YTArray(0.1, 'cm')
+        if flame_loc-2*half > lbound:
+            lbound = flame_loc-2*half
+        flame_slice = ds.r[0.3:0.31, lbound:flame_loc+half]
         #ds.domain_width.value
         #plot with slice this still plots the whole domain but zeros out everything else...
 
@@ -244,6 +252,6 @@ class ReactDataset2(Dataset):
         #then we must take this slice and apply it to our inputfile
         if not output_file:
             ds = yt.load(file)
-            flame_slice = ds.r[0.3:0.325, flame_loc-2*half:flame_loc+half]
+            flame_slice = ds.r[0.3:0.31, lbound:flame_loc+half]
 
         return flame_loc
