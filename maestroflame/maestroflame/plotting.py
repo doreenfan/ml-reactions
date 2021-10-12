@@ -62,9 +62,14 @@ class plotting_standard:
                     data_whole = torch.cat((data_whole, data))
                     targets_whole = torch.cat((targets_whole, targets))
 
+            self.model.eval()
+            
             #for batch_idx, (data, targets) in enumerate(self.test_loader):
             pred = self.model(data_whole)
             #print(pred.shape)
+            
+            self.model.train()
+            
             for i in range(pred.shape[0]):
                 if i == 0:
                     for j in range(pred.shape[1]):
