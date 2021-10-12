@@ -133,6 +133,14 @@ class NuclearReactionML:
                 arr = np.array([dens_fac.item(), temp_fac.item(), enuc_fac.item()])
                 np.savetxt(self.output_dir + 'scaling_factors.txt', arr, header='Density, Temperature, Enuc factors (ordered)')
 
+#                 #take log of mass fractions of species except C12[1], O16[2], Mg24[4]
+#                 # species that use linear loss
+#                 spec_lin = np.array([1, 2, 4])
+#                 # species that use log loss
+#                 spec_log = np.array([0, 3] + list(range(5,13)))
+#                 react_data.input_data[:,spec_log+1,:] = 0.01*torch.log(react_data.input_data[:,spec_log+1,:])
+#                 react_data.output_data[:,spec_log,:] = 0.01*torch.log(react_data.output_data[:,spec_log,:])
+                
                 self.fields = [field for field in yt.load(react_data.output_files[0])._field_list]
 
 

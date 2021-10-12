@@ -67,6 +67,17 @@ class plotting_standard:
             pred = self.model(data_whole)
             #print(pred.shape)
             
+#             # convert all mass fractions back from their log form
+#             # except C12[1], O16[2], Mg24[4]
+#             # species that use linear loss
+#             spec_lin = np.array([1, 2, 4])
+#             # species that use log loss
+#             spec_log = np.array([0, 3] + list(range(5,13)))
+            
+#             data_whole[:,spec_log] = torch.exp(100*data_whole[:,spec_log])
+#             targets_whole[:,spec_log] = torch.exp(100*targets_whole[:,spec_log])
+#             pred[:,spec_log] = torch.exp(100*pred[:,spec_log])
+            
             # enuc 
             n_A = 6.02214129e23
             MeV2erg = 1.602176487e-6
@@ -104,10 +115,10 @@ class plotting_standard:
                 if i == 0:
                     for j in range(pred.shape[1]):
                         plt.scatter(pred[i,j], targets_whole[i,j], color=colors[j], label=self.fields[j])
-                    plt.scatter(pred_enuc[i], targets_enuc[i], color=colors[-1], label=self.fields[-1])
+                    # plt.scatter(pred_enuc[i], targets_enuc[i], color=colors[-1], label=self.fields[-1])
                 else:
                     plt.scatter(pred[i, :], targets_whole[i, :self.nnuc], c=colors[:self.nnuc])
-                    plt.scatter(pred_enuc[i], targets_enuc[i], color=colors[-1])
+                    # plt.scatter(pred_enuc[i], targets_enuc[i], color=colors[-1])
 
         plt.plot(np.linspace(0, 1), np.linspace(0,1), '--', color='orange')
         #plt.legend(yt.load(react_data.output_files[0]).field_list, colors=colors)
@@ -119,6 +130,20 @@ class plotting_standard:
         plt.yscale("log")
         plt.xscale("log")
         plt.savefig(self.output_dir + "/prediction_vs_solution_log.png", bbox_inches='tight')
+        
+        # plots with enuc
+        for i in range(pred.shape[0]):
+                if i == 0:
+                    for j in range(pred.shape[1]):
+                        plt.scatter(pred_enuc[i], targets_enuc[i], color=colors[-1], label=self.fields[-1])
+                else:
+                    plt.scatter(pred_enuc[i], targets_enuc[i], color=colors[-1])
+        
+        plt.savefig(self.output_dir + "/prediction_vs_solution_enuc.png", bbox_inches='tight')
+
+        plt.yscale("linear")
+        plt.xscale("linear")
+        plt.savefig(self.output_dir + "/prediction_vs_solution_enuc_log.png", bbox_inches='tight')
 
         
     def do_cost_per_epoch_plot(self):
