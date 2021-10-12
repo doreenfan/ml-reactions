@@ -40,8 +40,9 @@ def log_loss(prediction, target):
     enuc_target = target[:, 13]
 
     L = nn.MSELoss()
-
-    enuc_loss = L(enuc, enuc_target)
+    F = nn.L1Loss()
+    
+    enuc_loss = L(enuc, enuc_target) + F(torch.sign(enuc), torch.sign(enuc_target))
 
 
     #if there are negative numbers we cant use log on massfractions
@@ -136,8 +137,8 @@ def log_loss_2(prediction, target):
 
         #greater than barrier we apply mse loss
         #less then barier we apply log of mse loss
-        A = my_heaviside(target - barrier, value)
-        B = -my_heaviside(target - barrier, value) + 1
+        A = my_heaviside(X_target - barrier, value)
+        B = -my_heaviside(X_target - barrier, value) + 1
 
         X_loss =  torch.sum(A * L(X, X_target) + B * torch.abs(.1*L(torch.log(X), torch.log(X_target))))
 
@@ -155,7 +156,7 @@ def log_loss_spec(prediction, target):
     # species that use log loss
     spec_log = [0, 3] + list(range(5,13))
 
-    # X is not allowed to be negative
+    # X_lin is not allowed to be negative
     X_lin, X_log = prediction[:, spec_lin], prediction[:, spec_log]
     X_lin_target, X_log_target = target[:, spec_lin], target[:, spec_log]
 
@@ -167,30 +168,30 @@ def log_loss_spec(prediction, target):
         # how much do we hate negative numbers?
         factor = 1000 # a lot
 
-        value = torch.tensor([0.], device=device)
+#         value = torch.tensor([0.], device=device)
 
-        # greater than zero we apply mse loss
-        A = my_heaviside(X_lin, value)
+#         # greater than zero we apply mse loss
+#         A = my_heaviside(X_lin, value)
 
-        # less than zero we apply large mse loss
-        B = -my_heaviside(X_lin, value) + 1
+#         # less than zero we apply large mse loss
+#         B = -my_heaviside(X_lin, value) + 1
 
-        linear_loss =  torch.sum(A * L(X_lin, X_lin_target) + factor * B * L(X_lin, X_lin_target))
+#         linear_loss =  torch.sum(A * L(X_lin, X_lin_target) + factor * B * L(X_lin, X_lin_target))
+        linear_loss = factor * L(X_lin, X_lin_target)
 
     else:
+#         barrier = torch.tensor([.1], device=device)
+#         value = torch.tensor([0.], device=device)
+
+#         #greater than barrier we apply mse loss
+#         #less then barier we apply log of mse loss
+#         A = my_heaviside(X_lin_target - barrier, value)
+#         B = -my_heaviside(X_lin_target - barrier, value) + 1
+
+#         linear_loss =  torch.sum(A * L(X_lin, X_lin_target) + B * torch.abs(.01*L(torch.log(X_lin), torch.log(X_lin_target))))
         linear_loss = L(X_lin, X_lin_target)
 
-
-    # if there are negative numbers we cant use log on mass fractions
-    if torch.sum(X_log < 0) > 0:
-        # how much do we hate negative log numbers?
-        factor = 1000 # a lot a lot
-
-        log_loss = factor * L(X_log, X_log_target)
-
-    else:
-        log_loss = torch.abs(.01*L(torch.log(X_log), torch.log(X_log_target)))
-
+    log_loss = L(X_log, X_log_target)
 
     return linear_loss + log_loss
 
@@ -338,6 +339,35 @@ def loss_pure(prediction, target, log_option = False):
     else:
         L = nn.MSELoss()
         return L(prediction, target[:, :nnuc+1])
+
+def loss_pure_2(prediction, target, log_option = False, nnuc=13):
+
+    if log_option:
+        L = nn.MSELoss()
+
+        #if there are negative numbers we cant use log
+        if torch.sum(prediction < 0) > 0:
+            #how much do we hate negative numbers?
+            factor = 1000 # a lot
+            return factor*L(prediction, target[:, :nnuc])
+
+        else:
+            barrier = torch.tensor([.1], device=device)
+            value = torch.tensor([0.], device=device)
+            #greater than barrier we apply mse loss
+            #less then barier we apply log of mse loss
+
+            A = my_heaviside(target[:, :nnuc+1] - barrier, value)
+            B = -my_heaviside(target[:, :nnuc+1] - barrier, value) + 1
+
+            L =  torch.sum(A * L(target[:, :nnuc], prediction) + B* torch.abs(.01*L(torch.log(target[:, :nnuc]), torch.log(prediction))))
+
+            return L
+
+    else:
+        L = nn.MSELoss()
+        return L(prediction, target[:, :nnuc])
+
 
 
 def tanh_loss(dxdt, prediction):
