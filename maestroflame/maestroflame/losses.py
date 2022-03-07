@@ -224,6 +224,49 @@ def loss_mass_fraction_half_L(prediction, nnuc=2):
     
     return L(torch.sum(prediction[:, :nnuc], 1), total)
 
+def loss_enuc(data, prediction, target, mion_n, nnuc=2):
+    # use a factor to decrease the coefficients of each species mass fraction
+    factor = 1e-3
+    
+    enuc_target = target[:, nnuc]
+    enuc_pred = prediction[:, nnuc]
+    
+    L = nn.MSELoss()
+    F = nn.L1Loss()
+    
+    # enuc = -sum((X_final - X_initial) * mion)
+    # enuc_loss = MSE(enuc_pred, enuc_target) 
+    #           = MSE(sum(X_pred-X_i)*mion, sum(X_target-X_i)*mion)
+    #           = MSE(sum(X_pred)*mion, sum(X_target)*mion)
+    
+    dX_target = target[:, :nnuc] - data[:, :nnuc]
+    dX_pred = prediction[:, :nnuc] - data[:, :nnuc]
+    denuc_target = factor * (enuc_target - torch.matmul(dX_target, mion_n))
+    denuc_pred = factor * (enuc_pred - torch.matmul(dX_pred, mion_n))
+    
+    return L(denuc_pred, denuc_target) #+ F(torch.sign(enuc_pred), torch.sign(enuc_target))
+
+def loss_enuc_noenuc(data, prediction, target, mion_n, nnuc=2):
+    mion = mion_n.to(device=device)
+    
+    # use a factor to decrease the coefficients of each species mass fraction
+    factor = 1e-4
+    
+    enuc_target = target[:, nnuc]
+    
+    L = nn.MSELoss()
+    F = nn.L1Loss()
+    
+    # enuc = -sum((X_final - X_initial) * mion)
+    # enuc_loss = MSE(enuc_pred, enuc_target) 
+    #           = MSE(sum(X_pred-X_i)*mion, sum(X_target-X_i)*mion)
+    #           = MSE(sum(X_pred)*mion, sum(X_target)*mion)
+    
+    dX_pred = prediction[:, :nnuc] - data[:, :nnuc]
+    enuc_pred = -torch.matmul(dX_pred, mion)
+    
+    return factor * L(enuc_pred, enuc_target) 
+
 def loss_pure(prediction, target, log_option = False):
 
     if log_option:

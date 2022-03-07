@@ -20,7 +20,7 @@ import gc
 
 class ReactDataset(Dataset):
 
-    def __init__(self, data_path, input_prefix, output_prefix, plotfile_prefix, DEBUG_MODE=False, data_range=3):
+    def __init__(self, data_path, input_prefix, output_prefix, plotfile_prefix, mion, DEBUG_MODE=False, data_range=3):
         #loading data
         #Load input and output data
         self.DEBUG_MODE = DEBUG_MODE
@@ -31,7 +31,7 @@ class ReactDataset(Dataset):
         self.do_flame_cut=True
         self.xbeg = data_range * 0.1
         self.xend = self.xbeg + 0.01
-        self.nf = 3   # how many extra local flame data to append to dataset
+        self.nf = 2   # how many extra local flame data to append to dataset
 
         self.input_files  = self.get_files(data_path, input_prefix)
         self.output_files = self.get_files(data_path, output_prefix)
@@ -61,6 +61,12 @@ class ReactDataset(Dataset):
         self.output_data = self.output_data[0:ind, :, :]
         self.input_files = self.input_files[0:ind]
         self.output_files = self.output_files[0:ind]
+
+        #get max enuc
+        self.n_output = int(self.output_data.shape[1])//2
+        self.enuc_fac = torch.max(self.output_data[:, self.n_output-1, :])
+        # normalize mion
+        self.mion = mion/self.enuc_fac
 
         print("Loaded data successfully!")
 
@@ -181,15 +187,21 @@ class ReactDataset(Dataset):
 
         file_number = int(np.floor(index/self.input_data.shape[2]))
         cell_number = int(index%self.input_data.shape[2])
-        n_output = int(self.output_data.shape[1])//2
-        iout = [i for i in range(n_output)]
-#         if n_output == 4:
+        iout = [i for i in range(self.n_output)]
+#         if self.n_output == 4:
 #             iout = [0, 2, 3]
 
         #data
         X = self.input_data[file_number, 1:, cell_number] #no dt
         #labels
         Y = self.output_data[file_number, iout, cell_number]
+
+        # compute enuc from mass fractions (consistency)
+        dX = Y[ :self.n_output-1] - X[ :self.n_output-1]
+        mion_X = self.mion[ :self.n_output-1].to(dtype=torch.double)
+        Y_enuc = -torch.matmul(dX, mion_X)
+
+        Y[self.n_output-1] = Y_enuc
 
         return (X.float(),Y.float())
 

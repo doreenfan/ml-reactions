@@ -20,7 +20,7 @@ import torch.utils.data
 from torch.utils.data.dataset import Dataset
 from torch.utils.data import DataLoader
 from .reactdataset_nodt import ReactDataset
-from .losses import component_loss_f, component_loss_f_L1
+from .losses import component_loss_f, component_loss_f_L1, loss_enuc, loss_enuc_noenuc
 from .plotting import plotting_standard, plotting_pinn
 
 
@@ -108,7 +108,20 @@ class NuclearReactionML:
                 #self.logger.write(f"log_loss_option {log_loss_option}")
                 self.logger.write(f"DO_HYPER_OPTIMIZATION {DO_HYPER_OPTIMIZATION}")
 
+                # compute binding energies
+                n_A = 6.02214129e23
+                MeV2erg = 1.602176487e-6
 
+                # set the binding energy of the species (MeV)
+                bion = torch.tensor([92.16294e0, 198.25790e0])
+                aion = torch.tensor([12., 24.])
+                #bion_O16 = 127.62093e0
+                #aion_O16 = 16.0
+    
+                # convert to erg/g by multiplying by n_A / aion and converting to erg
+                self.mion = (-MeV2erg * bion * n_A / aion)
+
+            
                 #LOADING DATA----------------------------------------------------------
                 plotfiles = glob(data_path + plotfile_prefix)
                 plotfiles = sorted(plotfiles)
@@ -116,7 +129,7 @@ class NuclearReactionML:
                 plotfiles = [plotfiles[-1]] + plotfiles[:-1] #move initdata to front.
                 #make_movie(plotfiles, movie_name='enuc.mp4', var='enuc')
 
-                react_data = ReactDataset(data_path, input_prefix, output_prefix, plotfile_prefix, DEBUG_MODE=DEBUG_MODE)
+                react_data = ReactDataset(data_path, input_prefix, output_prefix, plotfile_prefix, mion=self.mion, DEBUG_MODE=DEBUG_MODE)
                 self.nnuc = int(react_data.output_data.shape[1]/2 - 1)
 
                 #Normalize density, temperature, and enuc
@@ -125,8 +138,10 @@ class NuclearReactionML:
                 enuc_fac = torch.max(react_data.output_data[:, self.nnuc, :])
                 react_data.input_data[:, self.nnuc+1, :]  = react_data.input_data[:, self.nnuc+1, :]/dens_fac
                 react_data.input_data[:, self.nnuc+2, :]  = react_data.input_data[:, self.nnuc+2, :]/temp_fac
-                react_data.output_data[:, self.nnuc, :] = react_data.output_data[:, self.nnuc, :]/enuc_fac
-
+                # react_data.output_data[:, self.nnuc, :] = react_data.output_data[:, self.nnuc, :]/enuc_fac
+                # normalize mion to normalize enuc
+                self.mion /= enuc_fac
+                
                 #save these factors to a file
                 arr = np.array([dens_fac.item(), temp_fac.item(), enuc_fac.item()])
                 np.savetxt(self.output_dir + 'scaling_factors.txt', arr, header='Density, Temperature, Enuc factors (ordered)')
@@ -245,13 +260,13 @@ class NuclearReactionML:
 
                     # forward
                     pred = model(data)
-                    loss = criterion(pred, targets)
+                    loss = criterion(pred, targets) #+ loss_enuc_noenuc(data, pred, targets, self.mion)
 
                     losses.append(loss.item())
 
                     if self.DO_PLOTTING:
                         with torch.no_grad():
-                            loss_plot = criterion_plotting(pred, targets)
+                            loss_plot = criterion_plotting(pred, targets[:,:self.nnuc])
                             plotting_losses.append(loss_plot.item())
 
                             loss_c = component_loss_f(pred, targets)
@@ -287,7 +302,7 @@ class NuclearReactionML:
 
                             # forward
                             pred = model(data)
-                            loss = criterion_plotting(pred, targets)
+                            loss = criterion_plotting(pred, targets[:,:self.nnuc])
                             losses.append(loss.item())
 
                             loss_c = component_loss_f(pred, targets)
@@ -319,8 +334,9 @@ class NuclearReactionML:
                         np.savetxt(directory + "/component_losses_train.txt", self.component_losses_train)
 
 
-                        plot_class = plotting_standard(model, self.fields, self.test_loader, self.cost_per_epoc, np.array(self.component_losses_test),
-                                                np.array(self.component_losses_train), self.cost_per_epoc_test, directory)
+                        plot_class = plotting_standard(model, self.fields, self.test_loader, self.cost_per_epoc, 
+                                                       np.array(self.component_losses_test), np.array(self.component_losses_train), 
+                                                       self.cost_per_epoc_test, directory, mion=self.mion)
 
                         plot_class.do_all_plots()
 
@@ -355,7 +371,7 @@ class NuclearReactionML:
             self.logger.write("Plotting...")
 
             plot_class = plotting_standard(self.model, self.fields, self.test_loader, self.cost_per_epoc, self.component_losses_test,
-                        self.component_losses_train, self.cost_per_epoc_test, self.output_dir, self.LOG_MODE)
+                        self.component_losses_train, self.cost_per_epoc_test, self.output_dir, self.mion, self.LOG_MODE)
 
             plot_class.do_all_plots()
 

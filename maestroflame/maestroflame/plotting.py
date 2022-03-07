@@ -22,7 +22,7 @@ class plotting_standard:
 
     def __init__(self, model, fields, test_loader, cost_per_epoc,
                  component_losses_test, component_losses_train,
-                 cost_per_epoc_test, output_dir, LOG_MODE=True):
+                 cost_per_epoc_test, output_dir, mion, LOG_MODE=True):
         self.LOG_MODE = LOG_MODE
 
         self.model = model
@@ -35,6 +35,7 @@ class plotting_standard:
         self.component_losses_train = component_losses_train
         self.cost_per_epoc_test = cost_per_epoc_test
         self.output_dir = output_dir
+        self.mion = mion.cuda()
 
         isdir = os.path.isdir(output_dir)
         if not isdir:
@@ -74,6 +75,11 @@ class plotting_standard:
                 targets_whole[:,:self.nnuc] = torch.exp(-0.5/targets_whole[:,:self.nnuc])
                 pred[:,:self.nnuc] = torch.exp(-0.5/pred[:,:self.nnuc])
 
+            # compute enuc from X_k
+            dX_pred = pred[:, :self.nnuc] - data_whole[:, :self.nnuc]
+            enuc_pred = -torch.matmul(dX_pred, self.mion)
+            pred = torch.cat((pred, enuc_pred.reshape((enuc_pred.shape[0], 1))), dim=1)
+            
             pred = pred.cpu()
             targets_whole = targets_whole.cpu()
                 
@@ -91,6 +97,8 @@ class plotting_standard:
 
             plt.yscale("log")
             plt.xscale("log")
+            plt.ylim([1.e-16, 1.e1])
+            plt.xlim([1.e-16, 1.e3])
             plt.savefig(self.output_dir + "/prediction_vs_solution_log.png", bbox_inches='tight')
 
         self.model.train()
