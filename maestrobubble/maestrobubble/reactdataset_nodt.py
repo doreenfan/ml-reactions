@@ -28,7 +28,7 @@ class ReactDataset(Dataset):
         self.output_prefix = output_prefix
         self.data_path = data_path
 
-        self.ymin = yt.YTArray(3.e7, 'cm')
+        self.ymin = yt.YTArray(4.e7, 'cm')
         self.ymax = yt.YTArray(1.e8, 'cm')
 
         self.input_files  = self.get_files(data_path, input_prefix)

@@ -82,7 +82,7 @@ class ReactDataset(Dataset):
                 ds = yt.load(file)
                 dt = ds.current_time.to_value()
                 #Store data each row corresponds to data acros the grid of a different field.
-                ymin = yt.YTArray(3.e7, 'cm')
+                ymin = yt.YTArray(4.e7, 'cm')
                 ymax = yt.YTArray(1.e8, 'cm')
                 ad = ds.r[:, ymin:ymax]
 
