@@ -1,5 +1,5 @@
 import torch.nn as nn
-
+import torch
 
 class Net(nn.Module):
     def __init__(self, input_size, h1, h2, h3, output_size):
@@ -20,7 +20,7 @@ class Net(nn.Module):
         x = self.fc3(x)
         x = self.ac3(x)
         x = self.fc4(x)
-        return x
+        return torch.clamp(x, min=0)
 
 #this is just a testing network to compare how tanh does vs celu
 #We think there is a vanishing gradient problem.
@@ -34,6 +34,7 @@ class Net_tanh(nn.Module):
         self.fc3 = nn.Linear(h2, h3)
         self.ac3 = nn.Tanh()
         self.fc4 = nn.Linear(h3, output_size)
+        self.ac4 = nn.ReLU()  # same as removing negative outputs
 
     def forward(self, x):
         x = self.fc1(x)
@@ -43,6 +44,7 @@ class Net_tanh(nn.Module):
         x = self.fc3(x)
         x = self.ac3(x)
         x = self.fc4(x)
+        x = self.ac4(x)
         return x
 
 # Net inspired by U-Net
@@ -58,6 +60,7 @@ class U_Net(nn.Module):
         self.fc4 = nn.Linear(h3, h4)
         self.ac4 = nn.Tanh()
         self.fc5 = nn.Linear(h4, output_size)
+        self.ac5 = nn.ReLU()  # same as removing negative outputs
         
         # layers between non-consecutive layers
         self.io = nn.Linear(input_size, output_size)
@@ -69,7 +72,7 @@ class U_Net(nn.Module):
         x3 = self.ac3(self.fc3(x2))
         x4 = self.fc4(x3)
         x4 = self.ac4(x4 + self.fc1to4(x1))
-        x5 = self.fc5(x4) + self.io(x)
+        x5 = self.ac5(self.fc5(x4) + self.io(x))
         return x5
 
 # Nets inspired by ResNet
@@ -85,6 +88,7 @@ class ResNet(nn.Module):
         self.fc4 = nn.Linear(h3, h4)
         self.ac4 = nn.Tanh()
         self.fc5 = nn.Linear(h4, output_size)
+        self.ac5 = nn.ReLU()  # same as removing negative outputs
         
         # layers between non-consecutive layers 
         self.fc0to3 = nn.Linear(input_size, h3)
@@ -95,7 +99,7 @@ class ResNet(nn.Module):
         x2 = self.ac2(self.fc2(x1))
         x3 = self.ac3(self.fc3(x2) + self.fc0to3(x))
         x4 = self.ac4(self.fc4(x3))
-        x5 = self.fc5(x4) + self.fc2to5(x2)
+        x5 = self.ac5(self.fc5(x4) + self.fc2to5(x2))
         return x5
     
 class Cross_ResNet(nn.Module):
@@ -110,6 +114,7 @@ class Cross_ResNet(nn.Module):
         self.fc4 = nn.Linear(h3, h4)
         self.ac4 = nn.Tanh()
         self.fc5 = nn.Linear(h4, output_size)
+        self.ac5 = nn.ReLU()  # same as removing negative outputs
         
         # layers between non-consecutive layers
         self.fc1to4 = nn.Linear(h1, h4)
@@ -120,7 +125,7 @@ class Cross_ResNet(nn.Module):
         x2 = self.ac2(self.fc2(x1))
         x3 = self.ac3(self.fc3(x2))
         x4 = self.ac4(self.fc4(x3) + self.fc1to4(x1))
-        x5 = self.fc5(x4) + self.fc2to5(x2)
+        x5 = self.ac5(self.fc5(x4) + self.fc2to5(x2))
         return x5
 
 class Combine_Net3(nn.Module):
@@ -147,6 +152,7 @@ class Combine_Net3(nn.Module):
         self.fc10 = nn.Linear(h9, h10)
         self.ac10 = nn.Tanh()
         self.fc11 = nn.Linear(h10, output_size)
+        self.ac11 = nn.ReLU()  # same as removing negative outputs
         
         # Resnet connections 
         self.fc1to4 = nn.Linear(h1, h4)
@@ -169,7 +175,7 @@ class Combine_Net3(nn.Module):
         x8 = self.ac8(self.fc8(x7) + self.fc5to8(x5))
         x9 = self.ac9(self.fc9(x8))
         x10 = self.ac10(self.fc10(x9) + self.fc7to10(x7) + self.fc1to10(x1))
-        x11 = self.fc11(x10) + self.fcio(x)
+        x11 = self.ac11(self.fc11(x10) + self.fcio(x))
         return x11
 
 class Deep_Net(nn.Module):
@@ -188,7 +194,7 @@ class Deep_Net(nn.Module):
         self.fc6 = nn.Linear(h6, h7)
         self.ac6 = nn.Tanh()
         self.fc7 = nn.Linear(h7, output_size)
-
+        self.ac7 = nn.ReLU()  # same as removing negative outputs
 
     def forward(self, x):
         x = self.fc1(x)
@@ -204,6 +210,7 @@ class Deep_Net(nn.Module):
         x = self.fc6(x)
         x = self.ac6(x)
         x = self.fc7(x)
+        x = self.ac7(x)
         return x
 
 

@@ -10,6 +10,12 @@ def my_heaviside(x, input):
     y[x == 0] = input
     return y
 
+def my_exp_weights(x):
+    w = torch.zeros_like(x, requires_grad=False)
+    w[x < 0.25] = torch.pow(10., -6.0/(1 + torch.exp(-100*x[x < 0.25] + 5)) + 6)
+    w[x >= 0.25] = torch.pow(10., 6.0/(1 + torch.exp(-100*x[x >= 0.25] + 45)))
+    return w
+
 def component_loss_f(prediction, targets):
     #Takes the MSE of each component and returns the array of losses
     loss = torch.zeros(prediction.shape[1])
@@ -153,6 +159,67 @@ def logX_loss(prediction, target, nnuc=13):
         factor = 1
 
     return factor * L(X, X_target) + enuc_loss
+
+def loss_wexp(prediction, target, nnuc=2):
+    X = prediction[:, :nnuc]
+    X_target = target[:, :nnuc]
+    enuc = prediction[:, nnuc]
+    enuc_target = target[:, nnuc]
+
+    L = nn.MSELoss()
+    F = nn.L1Loss()
+
+    # enuc is allowed to be negative
+    # but penalty should be given if prediction is of different signs
+    enuc_fac = 1
+    enuc_loss = L(enuc, enuc_target) + enuc_fac * F(torch.sign(enuc), torch.sign(enuc_target))
+
+#     # we do not want negative values for mass fractions
+#     if torch.sum(X < 0) > 0:
+#         #how much do we hate negative numbers?
+#         factor = 1000  #a lot
+#     else:
+    factor = 1
+
+    # use weights that are inversely proportional to the mass fractions
+    wexp = my_exp_weights(X_target)
+
+    return factor * torch.sum(wexp * L(X, X_target)) + enuc_loss
+
+def loss_wexp_w_enuc(prediction, target, nnuc=2):
+    X = prediction[:, :nnuc]
+    X_target = target[:, :nnuc]
+    enuc = prediction[:, nnuc]
+    enuc_target = target[:, nnuc]
+
+    L = nn.MSELoss()
+    F = nn.L1Loss()
+
+    if torch.sum(enuc < 0) > 0:
+        # enuc is allowed to be negative
+        # but penalty should be given if prediction is of different signs
+        enuc_loss = L(enuc, enuc_target) + F(torch.sign(enuc), torch.sign(enuc_target))
+
+    else:
+        alpha = 1.0  # prevents computing log(enuc=1)
+
+        elog = -1./torch.log10(alpha*enuc)
+        elog_target = -1./torch.log10(alpha*enuc_target)
+
+        barrier = torch.tensor([.1], device=device)
+        value = torch.tensor([0.], device=device)
+
+        #greater than barrier we apply mse loss
+        #less then barier we apply log of mse loss
+        A = my_heaviside(enuc_target - barrier, value)
+        B = -my_heaviside(enuc_target - barrier, value) + 1
+
+        enuc_loss =  torch.sum(A * L(enuc, enuc_target) + B * 0.1 * L(elog, elog_target))
+
+    # use weights that are inversely proportional to the mass fractions
+    wexp = my_exp_weights(X_target)
+
+    return torch.sum(wexp * L(X, X_target)) + enuc_loss
 
 
 def rms_weighted_error(input, target, solution, atol=1e-6, rtol=1e-6):
