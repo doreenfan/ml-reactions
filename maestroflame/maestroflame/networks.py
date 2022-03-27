@@ -60,7 +60,6 @@ class U_Net(nn.Module):
         self.fc4 = nn.Linear(h3, h4)
         self.ac4 = nn.Tanh()
         self.fc5 = nn.Linear(h4, output_size)
-        self.ac5 = nn.ReLU()  # same as removing negative outputs
         
         # layers between non-consecutive layers
         self.io = nn.Linear(input_size, output_size)
@@ -72,7 +71,7 @@ class U_Net(nn.Module):
         x3 = self.ac3(self.fc3(x2))
         x4 = self.fc4(x3)
         x4 = self.ac4(x4 + self.fc1to4(x1))
-        x5 = self.ac5(self.fc5(x4) + self.io(x))
+        x5 = self.fc5(x4) + self.io(x)
         return x5
 
 # Nets inspired by ResNet
@@ -88,7 +87,6 @@ class ResNet(nn.Module):
         self.fc4 = nn.Linear(h3, h4)
         self.ac4 = nn.Tanh()
         self.fc5 = nn.Linear(h4, output_size)
-        self.ac5 = nn.ReLU()  # same as removing negative outputs
         
         # layers between non-consecutive layers 
         self.fc0to3 = nn.Linear(input_size, h3)
@@ -99,7 +97,7 @@ class ResNet(nn.Module):
         x2 = self.ac2(self.fc2(x1))
         x3 = self.ac3(self.fc3(x2) + self.fc0to3(x))
         x4 = self.ac4(self.fc4(x3))
-        x5 = self.ac5(self.fc5(x4) + self.fc2to5(x2))
+        x5 = self.fc5(x4) + self.fc2to5(x2)
         return x5
     
 class Cross_ResNet(nn.Module):
@@ -114,7 +112,6 @@ class Cross_ResNet(nn.Module):
         self.fc4 = nn.Linear(h3, h4)
         self.ac4 = nn.Tanh()
         self.fc5 = nn.Linear(h4, output_size)
-        self.ac5 = nn.ReLU()  # same as removing negative outputs
         
         # layers between non-consecutive layers
         self.fc1to4 = nn.Linear(h1, h4)
@@ -125,7 +122,7 @@ class Cross_ResNet(nn.Module):
         x2 = self.ac2(self.fc2(x1))
         x3 = self.ac3(self.fc3(x2))
         x4 = self.ac4(self.fc4(x3) + self.fc1to4(x1))
-        x5 = self.ac5(self.fc5(x4) + self.fc2to5(x2))
+        x5 = self.fc5(x4) + self.fc2to5(x2)
         return x5
 
 class Combine_Net3(nn.Module):
