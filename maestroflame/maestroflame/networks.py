@@ -11,6 +11,7 @@ class Net(nn.Module):
         self.fc3 = nn.Linear(h2, h3)
         self.ac3 = nn.CELU(alpha=1000.0)
         self.fc4 = nn.Linear(h3, output_size)
+        self.ac4 = nn.ReLU()  # same as removing negative values
 
     def forward(self, x):
         x = self.fc1(x)
@@ -20,6 +21,7 @@ class Net(nn.Module):
         x = self.fc3(x)
         x = self.ac3(x)
         x = self.fc4(x)
+        x = self.ac4(x)
         return x
 
 #this is just a testing network to compare how tanh does vs celu
@@ -34,6 +36,10 @@ class Net_tanh(nn.Module):
         self.fc3 = nn.Linear(h2, h3)
         self.ac3 = nn.Tanh()
         self.fc4 = nn.Linear(h3, output_size)
+        self.ac4 = nn.ReLU()  # same as removing negative values
+
+        # initialize final layer with He weights that work better with ReLU activation
+        nn.init.kaiming_normal_(self.fc4.weight, nonlinearity='relu')
 
     def forward(self, x):
         x = self.fc1(x)
@@ -43,6 +49,7 @@ class Net_tanh(nn.Module):
         x = self.fc3(x)
         x = self.ac3(x)
         x = self.fc4(x)
+        x = self.ac4(x)
         return x
 
 # Net inspired by U-Net
@@ -58,7 +65,7 @@ class U_Net(nn.Module):
         self.fc4 = nn.Linear(h3, h4)
         self.ac4 = nn.Tanh()
         self.fc5 = nn.Linear(h4, output_size)
-        
+
         # layers between non-consecutive layers
         self.io = nn.Linear(input_size, output_size)
         self.fc1to4 = nn.Linear(h1, h4)
@@ -147,6 +154,7 @@ class Combine_Net3(nn.Module):
         self.fc10 = nn.Linear(h9, h10)
         self.ac10 = nn.Tanh()
         self.fc11 = nn.Linear(h10, output_size)
+        self.ac11 = nn.ReLU()  # same as removing negative values
         
         # Resnet connections 
         self.fc1to4 = nn.Linear(h1, h4)
@@ -157,6 +165,10 @@ class Combine_Net3(nn.Module):
         # U net connections
         self.fc1to10 = nn.Linear(h1, h10)
         self.fcio = nn.Linear(input_size, output_size)
+
+        # initialize final layer with He weights that work better with ReLU activation
+        nn.init.kaiming_normal_(self.fc11.weight, nonlinearity='relu')
+        nn.init.kaiming_normal_(self.fcio.weight, nonlinearity='relu')
 
     def forward(self, x):
         x1 = self.ac1(self.fc1(x))
@@ -169,7 +181,7 @@ class Combine_Net3(nn.Module):
         x8 = self.ac8(self.fc8(x7) + self.fc5to8(x5))
         x9 = self.ac9(self.fc9(x8))
         x10 = self.ac10(self.fc10(x9) + self.fc7to10(x7) + self.fc1to10(x1))
-        x11 = self.fc11(x10) + self.fcio(x)
+        x11 = self.ac11(self.fc11(x10) + self.fcio(x))
         return x11
 
 class Deep_Net(nn.Module):
@@ -188,7 +200,7 @@ class Deep_Net(nn.Module):
         self.fc6 = nn.Linear(h6, h7)
         self.ac6 = nn.Tanh()
         self.fc7 = nn.Linear(h7, output_size)
-
+        self.ac7 = nn.ReLU()  # same as removing negative values
 
     def forward(self, x):
         x = self.fc1(x)
@@ -204,6 +216,7 @@ class Deep_Net(nn.Module):
         x = self.fc6(x)
         x = self.ac6(x)
         x = self.fc7(x)
+        x = self.ac7(x)
         return x
 
 
