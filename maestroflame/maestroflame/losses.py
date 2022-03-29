@@ -10,10 +10,10 @@ def my_heaviside(x, input):
     y[x == 0] = input
     return y
 
-def my_exp_weights(x):
+def my_exp_weights(x, b=6.0):
     w = torch.zeros_like(x, requires_grad=False)
-    w[x < 0.25] = torch.pow(10., -6.0/(1 + torch.exp(-100*x[x < 0.25] + 5)) + 6)
-    w[x >= 0.25] = torch.pow(10., 6.0/(1 + torch.exp(-100*x[x >= 0.25] + 45)))
+    w[x < 0.25] = torch.pow(10., -b/(1 + torch.exp(-100*x[x < 0.25] + 5)) + b)
+    w[x >= 0.25] = torch.pow(10., b/(1 + torch.exp(-100*x[x >= 0.25] + 45)))
     return w
 
 def component_loss_f(prediction, targets):
@@ -95,14 +95,14 @@ def logX_loss(prediction, target, nnuc=13):
 
     return factor * L(X, X_target) + enuc_loss
 
-def loss_wexp_noenuc(prediction, target, nnuc=2):
+def loss_wexp_noenuc(prediction, target, nnuc=2, offset=6.0):
     X = prediction[:, :nnuc]
     X_target = target[:, :nnuc]
 
     L = nn.MSELoss()
 
     # use weights that are inversely proportional to the mass fractions
-    wexp = my_exp_weights(X_target)
+    wexp = my_exp_weights(X_target, offset)
 
     return torch.sum(wexp * L(X, X_target))
 
