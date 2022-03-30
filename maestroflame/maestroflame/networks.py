@@ -2,16 +2,23 @@ import torch.nn as nn
 
 
 class Net(nn.Module):
-    def __init__(self, input_size, h1, h2, h3, output_size):
+    def __init__(self, input_size, h1, h2, h3, h4, output_size, relu=False):
         super().__init__()
+        self.relu = relu
         self.fc1 = nn.Linear(input_size, h1)
         self.ac1 = nn.CELU(alpha=100.0)
         self.fc2 = nn.Linear(h1, h2)
         self.ac2 = nn.CELU(alpha=100.0)
         self.fc3 = nn.Linear(h2, h3)
-        self.ac3 = nn.CELU(alpha=1000.0)
-        self.fc4 = nn.Linear(h3, output_size)
-        self.ac4 = nn.ReLU()  # same as removing negative values
+        self.ac3 = nn.CELU(alpha=100.0)
+        self.fc4 = nn.Linear(h3, h4)
+        self.ac4 = nn.CELU(alpha=1000.0)
+        self.fc5 = nn.Linear(h4, output_size)
+
+        if self.relu:
+            self.ac5 = nn.ReLU()  # same as removing negative values
+            # initialize final layer with He weights that work better with ReLU activation
+            nn.init.kaiming_normal_(self.fc5.weight, nonlinearity='relu')
 
     def forward(self, x):
         x = self.fc1(x)
@@ -22,24 +29,31 @@ class Net(nn.Module):
         x = self.ac3(x)
         x = self.fc4(x)
         x = self.ac4(x)
+        x = self.fc5(x)
+        if self.relu:
+            x = self.ac5(x)
         return x
 
 #this is just a testing network to compare how tanh does vs celu
 #We think there is a vanishing gradient problem.
 class Net_tanh(nn.Module):
-    def __init__(self, input_size, h1, h2, h3, output_size):
+    def __init__(self, input_size, h1, h2, h3, h4, output_size, relu=False):
         super().__init__()
+        self.relu = relu
         self.fc1 = nn.Linear(input_size, h1)
         self.ac1 = nn.Tanh()
         self.fc2 = nn.Linear(h1, h2)
         self.ac2 = nn.Tanh()
         self.fc3 = nn.Linear(h2, h3)
         self.ac3 = nn.Tanh()
-        self.fc4 = nn.Linear(h3, output_size)
-        self.ac4 = nn.ReLU()  # same as removing negative values
+        self.fc4 = nn.Linear(h3, h4)
+        self.ac4 = nn.Tanh()
+        self.fc5 = nn.Linear(h4, output_size)
 
-        # initialize final layer with He weights that work better with ReLU activation
-        nn.init.kaiming_normal_(self.fc4.weight, nonlinearity='relu')
+        if self.relu:
+            self.ac5 = nn.ReLU()  # same as removing negative values
+            # initialize final layer with He weights that work better with ReLU activation
+            nn.init.kaiming_normal_(self.fc5.weight, nonlinearity='relu')
 
     def forward(self, x):
         x = self.fc1(x)
@@ -50,12 +64,16 @@ class Net_tanh(nn.Module):
         x = self.ac3(x)
         x = self.fc4(x)
         x = self.ac4(x)
+        x = self.fc5(x)
+        if self.relu:
+            x = self.ac5(x)
         return x
 
 # Net inspired by U-Net
 class U_Net(nn.Module):
-    def __init__(self, input_size, h1, h2, h3, h4, output_size):
+    def __init__(self, input_size, h1, h2, h3, h4, output_size, relu=False):
         super().__init__()
+        self.relu = relu
         self.fc1 = nn.Linear(input_size, h1)
         self.ac1 = nn.Tanh()
         self.fc2 = nn.Linear(h1, h2)
@@ -70,6 +88,12 @@ class U_Net(nn.Module):
         self.io = nn.Linear(input_size, output_size)
         self.fc1to4 = nn.Linear(h1, h4)
 
+        if self.relu:
+            self.ac5 = nn.ReLU()
+            # initialize final layer with He weights that work better with ReLU activation
+            nn.init.kaiming_normal_(self.fc5.weight, nonlinearity='relu')
+            nn.init.kaiming_normal_(self.io.weight, nonlinearity='relu')
+
     def forward(self, x):
         x1 = self.ac1(self.fc1(x))
         x2 = self.ac2(self.fc2(x1))
@@ -77,12 +101,15 @@ class U_Net(nn.Module):
         x4 = self.fc4(x3)
         x4 = self.ac4(x4 + self.fc1to4(x1))
         x5 = self.fc5(x4) + self.io(x)
+        if self.relu:
+            x5 = self.ac5(x5)
         return x5
 
 # Nets inspired by ResNet
 class ResNet(nn.Module):
-    def __init__(self, input_size, h1, h2, h3, h4, output_size):
+    def __init__(self, input_size, h1, h2, h3, h4, output_size, relu=False):
         super().__init__()
+        self.relu = relu
         self.fc1 = nn.Linear(input_size, h1)
         self.ac1 = nn.Tanh()
         self.fc2 = nn.Linear(h1, h2)
@@ -97,17 +124,26 @@ class ResNet(nn.Module):
         self.fc0to3 = nn.Linear(input_size, h3)
         self.fc2to5 = nn.Linear(h2, output_size)
 
+        if self.relu:
+            self.ac5 = nn.ReLU()
+            # initialize final layer with He weights that work better with ReLU activation
+            nn.init.kaiming_normal_(self.fc5.weight, nonlinearity='relu')
+            nn.init.kaiming_normal_(self.fc2to5.weight, nonlinearity='relu')
+
     def forward(self, x):
         x1 = self.ac1(self.fc1(x))
         x2 = self.ac2(self.fc2(x1))
         x3 = self.ac3(self.fc3(x2) + self.fc0to3(x))
         x4 = self.ac4(self.fc4(x3))
         x5 = self.fc5(x4) + self.fc2to5(x2)
+        if self.relu:
+            x5 = self.ac5(x5)
         return x5
     
 class Cross_ResNet(nn.Module):
-    def __init__(self, input_size, h1, h2, h3, h4, output_size):
+    def __init__(self, input_size, h1, h2, h3, h4, output_size, relu=False):
         super().__init__()
+        self.relu = relu
         self.fc1 = nn.Linear(input_size, h1)
         self.ac1 = nn.Tanh()
         self.fc2 = nn.Linear(h1, h2)
@@ -122,17 +158,26 @@ class Cross_ResNet(nn.Module):
         self.fc1to4 = nn.Linear(h1, h4)
         self.fc2to5 = nn.Linear(h2, output_size)
 
+        if self.relu:
+            self.ac5 = nn.ReLU()
+            # initialize final layer with He weights that work better with ReLU activation
+            nn.init.kaiming_normal_(self.fc5.weight, nonlinearity='relu')
+            nn.init.kaiming_normal_(self.fc2to5.weight, nonlinearity='relu')
+
     def forward(self, x):
         x1 = self.ac1(self.fc1(x))
         x2 = self.ac2(self.fc2(x1))
         x3 = self.ac3(self.fc3(x2))
         x4 = self.ac4(self.fc4(x3) + self.fc1to4(x1))
         x5 = self.fc5(x4) + self.fc2to5(x2)
+        if self.relu:
+            x5 = self.ac5(x5)
         return x5
 
 class Combine_Net3(nn.Module):
-    def __init__(self, input_size, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, output_size):
+    def __init__(self, input_size, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, output_size, relu=False):
         super().__init__()
+        self.relu = relu
         self.fc1 = nn.Linear(input_size, h1)
         self.ac1 = nn.Tanh()
         self.fc2 = nn.Linear(h1, h2)
@@ -154,7 +199,6 @@ class Combine_Net3(nn.Module):
         self.fc10 = nn.Linear(h9, h10)
         self.ac10 = nn.Tanh()
         self.fc11 = nn.Linear(h10, output_size)
-        self.ac11 = nn.ReLU()  # same as removing negative values
         
         # Resnet connections 
         self.fc1to4 = nn.Linear(h1, h4)
@@ -166,9 +210,11 @@ class Combine_Net3(nn.Module):
         self.fc1to10 = nn.Linear(h1, h10)
         self.fcio = nn.Linear(input_size, output_size)
 
-        # initialize final layer with He weights that work better with ReLU activation
-        nn.init.kaiming_normal_(self.fc11.weight, nonlinearity='relu')
-        nn.init.kaiming_normal_(self.fcio.weight, nonlinearity='relu')
+        if self.relu:
+            self.ac11 = nn.ReLU()  # same as removing negative values
+            # initialize final layer with He weights that work better with ReLU activation
+            nn.init.kaiming_normal_(self.fc11.weight, nonlinearity='relu')
+            nn.init.kaiming_normal_(self.fcio.weight, nonlinearity='relu')
 
     def forward(self, x):
         x1 = self.ac1(self.fc1(x))
@@ -181,12 +227,15 @@ class Combine_Net3(nn.Module):
         x8 = self.ac8(self.fc8(x7) + self.fc5to8(x5))
         x9 = self.ac9(self.fc9(x8))
         x10 = self.ac10(self.fc10(x9) + self.fc7to10(x7) + self.fc1to10(x1))
-        x11 = self.ac11(self.fc11(x10) + self.fcio(x))
+        x11 = self.fc11(x10) + self.fcio(x)
+        if self.relu:
+            x11 = self.ac11(x11)
         return x11
 
 class Deep_Net(nn.Module):
-    def __init__(self, input_size, h1, h2, h3, h4, h5, h6, h7, output_size):
+    def __init__(self, input_size, h1, h2, h3, h4, h5, h6, h7, output_size, relu=False):
         super().__init__()
+        self.relu = relu
         self.fc1 = nn.Linear(input_size, h1)
         self.ac1 = nn.Tanh()
         self.fc2 = nn.Linear(h1, h2)
@@ -200,7 +249,8 @@ class Deep_Net(nn.Module):
         self.fc6 = nn.Linear(h6, h7)
         self.ac6 = nn.Tanh()
         self.fc7 = nn.Linear(h7, output_size)
-        self.ac7 = nn.ReLU()  # same as removing negative values
+        if self.relu:
+            self.ac7 = nn.ReLU()  # same as removing negative values
 
     def forward(self, x):
         x = self.fc1(x)
@@ -216,7 +266,8 @@ class Deep_Net(nn.Module):
         x = self.fc6(x)
         x = self.ac6(x)
         x = self.fc7(x)
-        x = self.ac7(x)
+        if self.relu:
+            x = self.ac7(x)
         return x
 
 
