@@ -71,17 +71,18 @@ class Net_tanh(nn.Module):
 
 # Net inspired by U-Net
 class U_Net(nn.Module):
-    def __init__(self, input_size, h1, h2, h3, h4, output_size, relu=False):
+    def __init__(self, input_size, h1, h2, h3, h4, output_size,
+                 relu=False, tanh=True):
         super().__init__()
         self.relu = relu
         self.fc1 = nn.Linear(input_size, h1)
-        self.ac1 = nn.Tanh()
+        self.ac1 = nn.Tanh() if tanh else nn.CELU()
         self.fc2 = nn.Linear(h1, h2)
-        self.ac2 = nn.Tanh()
+        self.ac2 = nn.Tanh() if tanh else nn.CELU()
         self.fc3 = nn.Linear(h2, h3)
-        self.ac3 = nn.Tanh()
+        self.ac3 = nn.Tanh() if tanh else nn.CELU()
         self.fc4 = nn.Linear(h3, h4)
-        self.ac4 = nn.Tanh()
+        self.ac4 = nn.Tanh() if tanh else nn.CELU()
         self.fc5 = nn.Linear(h4, output_size)
 
         # layers between non-consecutive layers
@@ -107,17 +108,18 @@ class U_Net(nn.Module):
 
 # Nets inspired by ResNet
 class ResNet(nn.Module):
-    def __init__(self, input_size, h1, h2, h3, h4, output_size, relu=False):
+    def __init__(self, input_size, h1, h2, h3, h4, output_size,
+                 relu=False, tanh=True):
         super().__init__()
         self.relu = relu
         self.fc1 = nn.Linear(input_size, h1)
-        self.ac1 = nn.Tanh()
+        self.ac1 = nn.Tanh() if tanh else nn.CELU()
         self.fc2 = nn.Linear(h1, h2)
-        self.ac2 = nn.Tanh()
+        self.ac2 = nn.Tanh() if tanh else nn.CELU()
         self.fc3 = nn.Linear(h2, h3)
-        self.ac3 = nn.Tanh()
+        self.ac3 = nn.Tanh() if tanh else nn.CELU()
         self.fc4 = nn.Linear(h3, h4)
-        self.ac4 = nn.Tanh()
+        self.ac4 = nn.Tanh() if tanh else nn.CELU()
         self.fc5 = nn.Linear(h4, output_size)
         
         # layers between non-consecutive layers 
@@ -141,17 +143,18 @@ class ResNet(nn.Module):
         return x5
     
 class Cross_ResNet(nn.Module):
-    def __init__(self, input_size, h1, h2, h3, h4, output_size, relu=False):
+    def __init__(self, input_size, h1, h2, h3, h4, output_size,
+                 relu=False, tanh=True):
         super().__init__()
         self.relu = relu
         self.fc1 = nn.Linear(input_size, h1)
-        self.ac1 = nn.Tanh()
+        self.ac1 = nn.Tanh() if tanh else nn.CELU()
         self.fc2 = nn.Linear(h1, h2)
-        self.ac2 = nn.Tanh()
+        self.ac2 = nn.Tanh() if tanh else nn.CELU()
         self.fc3 = nn.Linear(h2, h3)
-        self.ac3 = nn.Tanh()
+        self.ac3 = nn.Tanh() if tanh else nn.CELU()
         self.fc4 = nn.Linear(h3, h4)
-        self.ac4 = nn.Tanh()
+        self.ac4 = nn.Tanh() if tanh else nn.CELU()
         self.fc5 = nn.Linear(h4, output_size)
         
         # layers between non-consecutive layers
@@ -175,29 +178,30 @@ class Cross_ResNet(nn.Module):
         return x5
 
 class Combine_Net3(nn.Module):
-    def __init__(self, input_size, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, output_size, relu=False):
+    def __init__(self, input_size, h1, h2, h3, h4, h5, h6, h7, h8, h9, h10, output_size,
+                 relu=False, tanh=True):
         super().__init__()
         self.relu = relu
         self.fc1 = nn.Linear(input_size, h1)
-        self.ac1 = nn.Tanh()
+        self.ac1 = nn.Tanh() if tanh else nn.CELU()
         self.fc2 = nn.Linear(h1, h2)
-        self.ac2 = nn.Tanh()
+        self.ac2 = nn.Tanh() if tanh else nn.CELU()
         self.fc3 = nn.Linear(h2, h3)
-        self.ac3 = nn.Tanh()
+        self.ac3 = nn.Tanh() if tanh else nn.CELU()
         self.fc4 = nn.Linear(h3, h4)
-        self.ac4 = nn.Tanh()
+        self.ac4 = nn.Tanh() if tanh else nn.CELU()
         self.fc5 = nn.Linear(h4, h5)
-        self.ac5 = nn.Tanh()
+        self.ac5 = nn.Tanh() if tanh else nn.CELU()
         self.fc6 = nn.Linear(h5, h6)
-        self.ac6 = nn.Tanh()
+        self.ac6 = nn.Tanh() if tanh else nn.CELU()
         self.fc7 = nn.Linear(h6, h7)
-        self.ac7 = nn.Tanh()
+        self.ac7 = nn.Tanh() if tanh else nn.CELU()
         self.fc8 = nn.Linear(h7, h8)
-        self.ac8 = nn.Tanh()
+        self.ac8 = nn.Tanh() if tanh else nn.CELU()
         self.fc9 = nn.Linear(h8, h9)
-        self.ac9 = nn.Tanh()
+        self.ac9 = nn.Tanh() if tanh else nn.CELU()
         self.fc10 = nn.Linear(h9, h10)
-        self.ac10 = nn.Tanh()
+        self.ac10 = nn.Tanh() if tanh else nn.CELU()
         self.fc11 = nn.Linear(h10, output_size)
         
         # Resnet connections 
@@ -233,21 +237,22 @@ class Combine_Net3(nn.Module):
         return x11
 
 class Deep_Net(nn.Module):
-    def __init__(self, input_size, h1, h2, h3, h4, h5, h6, h7, output_size, relu=False):
+    def __init__(self, input_size, h1, h2, h3, h4, h5, h6, h7, output_size,
+                 relu=False, tanh=True):
         super().__init__()
         self.relu = relu
         self.fc1 = nn.Linear(input_size, h1)
-        self.ac1 = nn.Tanh()
+        self.ac1 = nn.Tanh() if tanh else nn.CELU()
         self.fc2 = nn.Linear(h1, h2)
-        self.ac2 = nn.Tanh()
+        self.ac2 = nn.Tanh() if tanh else nn.CELU()
         self.fc3 = nn.Linear(h2, h3)
-        self.ac3 = nn.Tanh()
+        self.ac3 = nn.Tanh() if tanh else nn.CELU()
         self.fc4 = nn.Linear(h3, h4)
-        self.ac4 = nn.Tanh()
+        self.ac4 = nn.Tanh() if tanh else nn.CELU()
         self.fc5 = nn.Linear(h5, h6)
-        self.ac5 = nn.Tanh()
+        self.ac5 = nn.Tanh() if tanh else nn.CELU()
         self.fc6 = nn.Linear(h6, h7)
-        self.ac6 = nn.Tanh()
+        self.ac6 = nn.Tanh() if tanh else nn.CELU()
         self.fc7 = nn.Linear(h7, output_size)
         if self.relu:
             self.ac7 = nn.ReLU()  # same as removing negative values
