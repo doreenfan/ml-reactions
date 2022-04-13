@@ -28,10 +28,12 @@ class ReactDataset(Dataset):
         self.output_prefix = output_prefix
         self.data_path = data_path
 
-        self.do_flame_cut=True
+        self.do_flame_cut = True
         self.xbeg = data_range * 0.1
         self.xend = self.xbeg + 0.01
-        self.nf = 2   # how many extra local flame data to append to dataset
+        self.nf = 2   # how many extra local flame data to append to dataset (<= 6)
+        if self.nf > 0:
+            self.xrange = [i * 0.1 for i in range(1,7)]
 
         self.input_files  = self.get_files(data_path, input_prefix)
         self.output_files = self.get_files(data_path, output_prefix)
@@ -100,6 +102,10 @@ class ReactDataset(Dataset):
                     if flame_loc-half > lbound:
                         lbound = flame_loc-half
                     ad_flame = ds.r[self.xbeg:self.xend, lbound:flame_loc+half]
+                    if self.nf > 0:
+                        ad_flame = ad_flame + ds.r[self.xrange[0]:self.xrange[0] + 0.01, lbound:flame_loc+half]
+                        for n in range(1,self.nf):
+                            ad_flame = ad_flame + ds.r[self.xrange[n]:self.xrange[n] + 0.01, lbound:flame_loc+half]
                     ad = ds.r[self.xbeg:self.xend, :]
                 else:
                     ad_flame = []
@@ -108,11 +114,10 @@ class ReactDataset(Dataset):
                 for i,field in enumerate(ds._field_list):
                     # add repeating data of the flame itself (nf times)
                     if i == 0:
-                        data = np.zeros([len(ds._field_list), len(ad[field]) + self.nf*len(ad_flame[field])])
+                        data = np.zeros([len(ds._field_list), len(ad[field]) + len(ad_flame[field])])
 
                     if self.nf > 0:
-                        data_repeat = np.tile(np.array(ad_flame[field]), self.nf)
-                        data[i,:] = np.concatenate((np.array(ad[field]), data_repeat))
+                        data[i,:] = np.concatenate((np.array(ad[field]), np.array(ad_flame[field])))
                     else:
                         data[i,:] = np.array(ad[field])
             except:
@@ -150,14 +155,17 @@ class ReactDataset(Dataset):
                         if flame_loc-2*half > lbound:
                             lbound = flame_loc-2*half
                         ad_flame = ds.r[self.xbeg:self.xend, lbound:flame_loc+2*half]
+                        if self.nf > 0:
+                            ad_flame = ad_flame + ds.r[self.xrange[0]:self.xrange[0] + 0.01, lbound:flame_loc+2*half]
+                            for n in range(1,self.nf):
+                                ad_flame = ad_flame + ds.r[self.xrange[n]:self.xrange[n]+0.01, lbound:flame_loc+2*half]
                         ad = ds.r[self.xbeg:self.xend, :]
                         for i,field in enumerate(ds._field_list):
                             if i == 0:
-                                data = np.zeros([len(ds._field_list), len(ad[field]) + self.nf*len(ad_flame[field])])
+                                data = np.zeros([len(ds._field_list), len(ad[field]) + len(ad_flame[field])])
 
                             if self.nf > 0:
-                                data_repeat = np.tile(np.array(ad_flame[field]), self.nf)
-                                data[i,:] = np.concatenate((np.array(ad[field]), data_repeat))
+                                data[i,:] = np.concatenate((np.array(ad[field]), np.array(ad_flame[field])))
                             else:
                                 data[i,:] = np.array(ad[field])
                         data = torch.from_numpy(data.reshape((1,data.shape[0],data.shape[1])))
