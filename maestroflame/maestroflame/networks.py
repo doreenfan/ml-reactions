@@ -14,9 +14,9 @@ class Net(nn.Module):
         self.fc4 = nn.Linear(h3, h4)
         self.ac4 = nn.CELU(alpha=10.0)
         self.fc5 = nn.Linear(h4, output_size)
+        self.ac5 = nn.ReLU()  # same as removing negative values
 
         if self.relu:
-            self.ac5 = nn.ReLU()  # same as removing negative values
             # initialize final layer with He weights that work better with ReLU activation
             nn.init.kaiming_normal_(self.fc5.weight, nonlinearity='relu')
 
@@ -49,9 +49,9 @@ class Net_tanh(nn.Module):
         self.fc4 = nn.Linear(h3, h4)
         self.ac4 = nn.Tanh()
         self.fc5 = nn.Linear(h4, output_size)
+        self.ac5 = nn.ReLU()  # same as removing negative values
 
         if self.relu:
-            self.ac5 = nn.ReLU()  # same as removing negative values
             # initialize final layer with He weights that work better with ReLU activation
             nn.init.kaiming_normal_(self.fc5.weight, nonlinearity='relu')
 
@@ -84,13 +84,13 @@ class U_Net(nn.Module):
         self.fc4 = nn.Linear(h3, h4)
         self.ac4 = nn.Tanh() if tanh else nn.CELU()
         self.fc5 = nn.Linear(h4, output_size)
+        self.ac5 = nn.ReLU()
 
         # layers between non-consecutive layers
         self.io = nn.Linear(input_size, output_size)
         self.fc1to4 = nn.Linear(h1, h4)
 
         if self.relu:
-            self.ac5 = nn.ReLU()
             # initialize final layer with He weights that work better with ReLU activation
             nn.init.kaiming_normal_(self.fc5.weight, nonlinearity='relu')
             nn.init.kaiming_normal_(self.io.weight, nonlinearity='relu')
@@ -121,13 +121,13 @@ class ResNet(nn.Module):
         self.fc4 = nn.Linear(h3, h4)
         self.ac4 = nn.Tanh() if tanh else nn.CELU()
         self.fc5 = nn.Linear(h4, output_size)
+        self.ac5 = nn.ReLU()
         
         # layers between non-consecutive layers 
         self.fc0to3 = nn.Linear(input_size, h3)
         self.fc2to5 = nn.Linear(h2, output_size)
 
         if self.relu:
-            self.ac5 = nn.ReLU()
             # initialize final layer with He weights that work better with ReLU activation
             nn.init.kaiming_normal_(self.fc5.weight, nonlinearity='relu')
             nn.init.kaiming_normal_(self.fc2to5.weight, nonlinearity='relu')
@@ -156,13 +156,13 @@ class Cross_ResNet(nn.Module):
         self.fc4 = nn.Linear(h3, h4)
         self.ac4 = nn.Tanh() if tanh else nn.CELU()
         self.fc5 = nn.Linear(h4, output_size)
+        self.ac5 = nn.ReLU()
         
         # layers between non-consecutive layers
         self.fc1to4 = nn.Linear(h1, h4)
         self.fc2to5 = nn.Linear(h2, output_size)
 
         if self.relu:
-            self.ac5 = nn.ReLU()
             # initialize final layer with He weights that work better with ReLU activation
             nn.init.kaiming_normal_(self.fc5.weight, nonlinearity='relu')
             nn.init.kaiming_normal_(self.fc2to5.weight, nonlinearity='relu')
@@ -199,6 +199,7 @@ class Deep_ResNet(nn.Module):
         self.fc8 = nn.Linear(h7, h8)
         self.ac8 = nn.Tanh() if tanh else nn.CELU()
         self.fc9 = nn.Linear(h8, output_size)
+        self.ac9 = nn.ReLU()
         
         # layers between non-consecutive layers 
         self.fc0to3 = nn.Linear(input_size, h3)
@@ -212,7 +213,6 @@ class Deep_ResNet(nn.Module):
         self.fc5to8 = nn.Linear(h5, h8)
 
         if self.relu:
-            self.ac9 = nn.ReLU()
             # initialize final layer with He weights that work better with ReLU activation
             nn.init.kaiming_normal_(self.fc5.weight, nonlinearity='relu')
             nn.init.kaiming_normal_(self.fc6to9.weight, nonlinearity='relu')
@@ -257,6 +257,7 @@ class Combine_Net3(nn.Module):
         self.fc10 = nn.Linear(h9, h10)
         self.ac10 = nn.Tanh() if tanh else nn.CELU()
         self.fc11 = nn.Linear(h10, output_size)
+        self.ac11 = nn.ReLU()  # same as removing negative values
         
         # Resnet connections 
         self.fc1to4 = nn.Linear(h1, h4)
@@ -269,7 +270,6 @@ class Combine_Net3(nn.Module):
         self.fcio = nn.Linear(input_size, output_size)
 
         if self.relu:
-            self.ac11 = nn.ReLU()  # same as removing negative values
             # initialize final layer with He weights that work better with ReLU activation
             nn.init.kaiming_normal_(self.fc11.weight, nonlinearity='relu')
             nn.init.kaiming_normal_(self.fcio.weight, nonlinearity='relu')
@@ -308,8 +308,7 @@ class Deep_Net(nn.Module):
         self.fc6 = nn.Linear(h6, h7)
         self.ac6 = nn.Tanh() if tanh else nn.CELU()
         self.fc7 = nn.Linear(h7, output_size)
-        if self.relu:
-            self.ac7 = nn.ReLU()  # same as removing negative values
+        self.ac7 = nn.ReLU()  # same as removing negative values
 
     def forward(self, x):
         x = self.fc1(x)
