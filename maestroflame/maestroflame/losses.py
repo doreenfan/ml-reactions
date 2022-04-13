@@ -16,6 +16,13 @@ def my_exp_weights(x, b=6.0):
     w[x >= 0.25] = torch.pow(10., b/(1 + torch.exp(-100*x[x >= 0.25] + 45)))
     return w
 
+def my_inverse_weights(x, b=6.0):
+    c = pow(10, -b)
+    w = torch.ones_like(x, requires_grad=False)
+    w[x < (0.25-c)] = 1.0/(4*x[x < (0.25-c)] + c)
+    w[x > (0.25+c)] = 1.0/(-4*x[x > (0.25+c)] + c)
+    return w
+
 def component_loss_f(prediction, targets):
     #Takes the MSE of each component and returns the array of losses
     loss = torch.zeros(prediction.shape[1])
@@ -105,6 +112,17 @@ def loss_wexp_noenuc(prediction, target, nnuc=2, offset=6.0):
     wexp = my_exp_weights(X_target, offset)
 
     return torch.sum(wexp * L(X, X_target))
+
+def loss_winv_noenuc(prediction, target, nnuc=2, offset=6.0):
+    X = prediction[:, :nnuc]
+    X_target = target[:, :nnuc]
+
+    L = nn.MSELoss()
+
+    # use weights that are inversely proportional to the mass fractions
+    winv = my_inverse_weights(X_target, offset)
+
+    return torch.sum(winv * L(X, X_target))
 
 
 def rms_weighted_error(input, target, solution, atol=1e-6, rtol=1e-6):
@@ -240,6 +258,13 @@ def loss_mass_fraction_half_L(prediction, nnuc=2):
     total = 0.5*torch.ones(prediction.shape[0], device=device)
     
     return L(torch.sum(prediction[:, :nnuc], 1), total)
+
+def loss_mass_fraction_conserv(prediction, target, nnuc=2):
+    L = nn.MSELoss()
+    total_pred = torch.sum(prediction[:, :nnuc], 1)
+    total = torch.sum(target[:, :nnuc], 1)
+
+    return L(total_pred, total)
 
 def loss_enuc(data, prediction, target, mion_n, nnuc=2):
     # use a factor to decrease the coefficients of each species mass fraction
