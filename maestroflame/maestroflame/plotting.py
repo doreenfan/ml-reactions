@@ -75,10 +75,10 @@ class plotting_standard:
                 targets_whole[:,:self.nnuc] = torch.exp(-0.5/targets_whole[:,:self.nnuc])
                 pred[:,:self.nnuc] = torch.exp(-0.5/pred[:,:self.nnuc])
 
-            # compute enuc from X_k
-            dX_pred = pred[:, :self.nnuc] - data_whole[:, :self.nnuc]
-            enuc_pred = -torch.matmul(dX_pred, self.mion)
-            pred = torch.cat((pred, enuc_pred.reshape((enuc_pred.shape[0], 1))), dim=1)
+#             # compute enuc from X_k
+#             dX_pred = pred[:, :self.nnuc] - data_whole[:, :self.nnuc]
+#             enuc_pred = -torch.matmul(dX_pred, self.mion)
+#             pred = torch.cat((pred, enuc_pred.reshape((enuc_pred.shape[0], 1))), dim=1)
             
             pred = pred.cpu()
             targets_whole = targets_whole.cpu()
