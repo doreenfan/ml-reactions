@@ -28,10 +28,12 @@ class ReactDataset(Dataset):
         self.output_prefix = output_prefix
         self.data_path = data_path
 
-        self.do_flame_cut=True
-        self.xbeg = data_range * 0.1
-        self.xend = self.xbeg + 0.01
-        self.nf = 3   # how many extra local flame data to append to dataset
+        self.do_flame_cut = True
+        self.xbeg = 0.0  #data_range * 0.1
+        self.xend = 0.4  #self.xbeg + 0.01
+        self.nf = 2   # how many extra local flame data to append to dataset (<= 6)
+        if self.nf > 0:
+            self.xrange = [i * 0.1 for i in range(6,-1,-1)]
 
         self.input_files  = self.get_files(data_path, input_prefix)
         self.output_files = self.get_files(data_path, output_prefix)
@@ -90,9 +92,10 @@ class ReactDataset(Dataset):
                 if self.do_flame_cut:
                     flame_loc = self.get_flame_loc(file)
                     half = yt.YTArray(0.5, 'cm')
+                    back = yt.YTArray(0.8, 'cm')
                     lbound = yt.YTArray(0.1, 'cm')
-                    if flame_loc-half > lbound:
-                        lbound = flame_loc-half
+                    if flame_loc-back > lbound:
+                        lbound = flame_loc-back
                     ad_flame = ds.r[self.xbeg:self.xend, lbound:flame_loc+half]
                     ad = ds.r[self.xbeg:self.xend, :]
                 else:
@@ -141,8 +144,8 @@ class ReactDataset(Dataset):
                     #We need to get more data.
                     elif data.shape[2] < NUM_GRID_CELLS:
                         #double size of cut
-                        if flame_loc-2*half > lbound:
-                            lbound = flame_loc-2*half
+                        if flame_loc-2*back > lbound:
+                            lbound = flame_loc-2*back
                         ad_flame = ds.r[self.xbeg:self.xend, lbound:flame_loc+2*half]
                         ad = ds.r[self.xbeg:self.xend, :]
                         for i,field in enumerate(ds._field_list):
