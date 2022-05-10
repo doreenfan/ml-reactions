@@ -263,6 +263,7 @@ def loss_mass_fraction_conserv(prediction, target, nnuc=2):
     L = nn.MSELoss()
     total_pred = torch.sum(prediction[:, :nnuc], 1)
     total = torch.sum(target[:, :nnuc], 1)
+    total.requires_grad = False
 
     return L(total_pred, total)
 
