@@ -79,15 +79,16 @@ class plotting_standard:
             dX_pred = pred[:, :self.nnuc] - data_whole[:, :self.nnuc]
             enuc_pred = -torch.matmul(dX_pred, self.mion)
             pred = torch.cat((pred, enuc_pred.reshape((enuc_pred.shape[0], 1))), dim=1)
-            
+
             pred = pred.cpu()
             targets_whole = targets_whole.cpu()
-                
-            colors_nm1 = np.tile(colors, (pred.shape[0]-1, 1))
-            for j in range(pred.shape[1]):
+
+            # colors_nm1 = np.tile(colors, (pred.shape[0]-1, 1))
+            colors_nm1 = np.tile(colors[:-1], (pred.shape[0]-1, 1))
+            for j in range(self.nnuc):
                 plt.scatter(pred[0,j], targets_whole[0,j], color=colors[j], label=self.fields[j])
-            plt.scatter(pred[1:, :], targets_whole[1:, :], c=colors_nm1)
-            
+            plt.scatter(pred[1:, :self.nnuc], targets_whole[1:, :self.nnuc], c=colors_nm1)
+
             plt.plot(np.linspace(0, 1), np.linspace(0,1), '--', color='orange')
             #plt.legend(yt.load(react_data.output_files[0]).field_list, colors=colors)
             plt.legend(bbox_to_anchor=(1, 1))

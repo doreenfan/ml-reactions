@@ -77,6 +77,35 @@ def log_loss(prediction, target, nnuc=13):
 
     return enuc_loss + X_loss
 
+def log_loss_noenuc(prediction, target, nnuc=13):
+    # Log Loss Function for standard ML.
+    # If there are negative values in X we use MSE
+
+    #X is not allowed to be negative. Enuc is
+    X = prediction[:, :nnuc]
+    X_target = target[:, :nnuc]
+
+    L = nn.MSELoss()
+
+    #if there are negative numbers we cant use log on mass fractions
+    if torch.sum(X <= 0) > 0:
+        #how much do we hate negative numbers?
+        factor = 1000 # a lot
+        return factor*L(X, X_target)
+
+    else:
+        barrier = torch.tensor([.1], device=device)
+        value = torch.tensor([0.], device=device)
+
+        #greater than barrier we apply mse loss
+        #less then barier we apply log of mse loss
+        A = my_heaviside(X_target - barrier, value)
+        B = -my_heaviside(X_target - barrier, value) + 1
+
+        X_loss =  torch.sum(A * L(X, X_target) + B* torch.abs(.01*L(torch.log(X), torch.log(X_target))))
+
+    return X_loss
+
 def logX_loss(prediction, target, nnuc=13):
     # We are working with mass fractions in the form of -1/log(X_k)
 
@@ -101,6 +130,23 @@ def logX_loss(prediction, target, nnuc=13):
         factor = 1
 
     return factor * L(X, X_target) + enuc_loss
+
+def logX_loss_noenuc(prediction, target, nnuc=13):
+    # We are working with mass fractions in the form of -1/log(X_k)
+
+    X = prediction[:, :nnuc]
+    X_target = target[:, :nnuc]
+
+    L = nn.MSELoss()
+    
+    # we do not want negative values for mass fractions
+    if torch.sum(X < 0) > 0:
+        #how much do we hate negative numbers?
+        factor = 1000  #a lot
+    else:
+        factor = 1
+
+    return factor * L(X, X_target)
 
 def loss_wexp_noenuc(prediction, target, nnuc=2, offset=6.0):
     X = prediction[:, :nnuc]
@@ -263,6 +309,19 @@ def loss_mass_fraction_conserv(prediction, target, nnuc=2):
     L = nn.MSELoss()
     total_pred = torch.sum(prediction[:, :nnuc], 1)
     total = torch.sum(target[:, :nnuc], 1)
+    total.requires_grad = False
+
+    return L(total_pred, total)
+
+def loss_mass_fraction_log_conserv(prediction, target, nnuc=2):
+    L = nn.MSELoss()
+
+    Xk = torch.exp(-0.5/target[:, :nnuc])
+    total = torch.sum(Xk, 1)
+    total.requires_grad = False
+
+    Xk_pred = torch.exp(-0.5/prediction[:, :nnuc])
+    total_pred = torch.sum(Xk_pred, 1)
 
     return L(total_pred, total)
 
