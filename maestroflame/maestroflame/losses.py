@@ -313,14 +313,14 @@ def loss_mass_fraction_conserv(prediction, target, nnuc=2):
 
     return L(total_pred, total)
 
-def loss_mass_fraction_log_conserv(prediction, target, nnuc=2):
+def loss_mass_fraction_log_conserv(factor, prediction, target, nnuc=2):
     L = nn.MSELoss()
 
-    Xk = torch.exp(-0.5/target[:, :nnuc])
+    Xk = torch.exp(-factor/target[:, :nnuc])
     total = torch.sum(Xk, 1)
     total.requires_grad = False
 
-    Xk_pred = torch.exp(-0.5/prediction[:, :nnuc])
+    Xk_pred = torch.exp(-factor/prediction[:, :nnuc])
     total_pred = torch.sum(Xk_pred, 1)
 
     return L(total_pred, total)
