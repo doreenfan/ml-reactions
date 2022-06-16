@@ -135,7 +135,7 @@ class NuclearReactionML:
                 #Normalize density, temperature, and enuc
                 dens_fac = torch.max(react_data.input_data[:, self.nnuc+1, :])
                 temp_fac = torch.max(react_data.input_data[:, self.nnuc+2, :])
-                enuc_fac = torch.max(react_data.output_data[:, self.nnuc, :])
+                enuc_fac = 1.1*torch.max(react_data.output_data[:, self.nnuc, :])
                 react_data.input_data[:, self.nnuc+1, :]  = react_data.input_data[:, self.nnuc+1, :]/dens_fac
                 react_data.input_data[:, self.nnuc+2, :]  = react_data.input_data[:, self.nnuc+2, :]/temp_fac
                 # react_data.output_data[:, self.nnuc, :] = react_data.output_data[:, self.nnuc, :]/enuc_fac

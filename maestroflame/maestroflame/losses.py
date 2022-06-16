@@ -102,6 +102,23 @@ def logX_loss(prediction, target, nnuc=13):
 
     return factor * L(X, X_target) + enuc_loss
 
+def logX_loss_noenuc(prediction, target, nnuc=2):
+    # We are working with mass fractions in the form of -1/log(X_k)
+
+    X = prediction[:, :nnuc]
+    X_target = target[:, :nnuc]
+
+    L = nn.MSELoss()
+
+    # we do not want negative values for mass fractions
+    if torch.sum(X < 0) > 0:
+        #how much do we hate negative numbers?
+        factor = 1000  #a lot
+    else:
+        factor = 1
+
+    return factor * L(X, X_target)
+
 def loss_wexp_noenuc(prediction, target, nnuc=2, offset=6.0):
     X = prediction[:, :nnuc]
     X_target = target[:, :nnuc]
@@ -264,6 +281,18 @@ def loss_mass_fraction_conserv(prediction, target, nnuc=2):
     total_pred = torch.sum(prediction[:, :nnuc], 1)
     total = torch.sum(target[:, :nnuc], 1)
     total.requires_grad = False
+
+    return L(total_pred, total)
+
+def loss_mass_fraction_log_conserv(factor, prediction, target, nnuc=2):
+    L = nn.MSELoss()
+
+    Xk = torch.exp(-factor/target[:, :nnuc])
+    total = torch.sum(Xk, 1)
+    total.requires_grad = False
+
+    Xk_pred = torch.exp(-factor/prediction[:, :nnuc])
+    total_pred = torch.sum(Xk_pred, 1)
 
     return L(total_pred, total)
 

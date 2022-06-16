@@ -71,9 +71,9 @@ class plotting_standard:
 
             if self.LOG_MODE:
                 # convert all mass fractions back from their log form
-                data_whole[:,:self.nnuc] = torch.exp(-0.5/data_whole[:,:self.nnuc])
-                targets_whole[:,:self.nnuc] = torch.exp(-0.5/targets_whole[:,:self.nnuc])
-                pred[:,:self.nnuc] = torch.exp(-0.5/pred[:,:self.nnuc])
+                data_whole[:,:self.nnuc] = torch.exp(-1.0/data_whole[:,:self.nnuc])
+                targets_whole[:,:self.nnuc] = torch.exp(-1.0/targets_whole[:,:self.nnuc])
+                pred[:,:self.nnuc] = torch.exp(-1.0/pred[:,:self.nnuc])
 
 #             # compute enuc from X_k
 #             dX_pred = pred[:, :self.nnuc] - data_whole[:, :self.nnuc]

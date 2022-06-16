@@ -204,12 +204,12 @@ class ReactDataset(Dataset):
         #labels
         Y = self.output_data[file_number, iout, cell_number]
 
-        # compute enuc from mass fractions (consistency)
-        dX = Y[ :self.n_output-1] - X[ :self.n_output-1]
-        mion_X = self.mion[ :self.n_output-1].to(dtype=torch.double)
-        Y_enuc = -torch.matmul(dX, mion_X)
+#         # compute enuc from mass fractions (consistency)
+#         dX = Y[ :self.n_output-1] - X[ :self.n_output-1]
+#         mion_X = self.mion[ :self.n_output-1].to(dtype=torch.double)
+#         Y_enuc = -torch.matmul(dX, mion_X)
 
-        Y[self.n_output-1] = Y_enuc
+#         Y[self.n_output-1] = Y_enuc
 
         return (X.float(),Y.float())
 
