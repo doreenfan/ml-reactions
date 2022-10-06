@@ -63,7 +63,8 @@ class plotting_standard:
                     data_whole = torch.cat((data_whole, data))
                     targets_whole = torch.cat((targets_whole, targets))
 
-            data_whole = data_whole.cuda()
+            if torch.cuda.is_available():
+                data_whole = data_whole.cuda()
                     
             #for batch_idx, (data, targets) in enumerate(self.test_loader):
             pred = self.model(data_whole)
