@@ -43,8 +43,10 @@ class plotting_standard:
 
     def do_prediction_vs_solution_plot(self):
         ############ Prediction Vs Solution Plot Should fall one y=x line.
-
         plt.figure()
+        # plt.figure(figsize=[4.8, 4.8])
+        plt.rcParams.update({'font.size': 14})
+
         #N = react_data.output_data.shape[1]
         colors = matplotlib.cm.rainbow(np.linspace(0, 1, len(self.fields)))
         #fields = [field[1] for field in yt.load(react_data.output_files[0]).field_list]
@@ -77,7 +79,7 @@ class plotting_standard:
 
             pred = pred.cpu()
             targets_whole = targets_whole.cpu()
-                
+
             colors_nm1 = np.tile(colors, (pred.shape[0]-1, 1))
             for j in range(pred.shape[1]):
                 plt.scatter(pred[0,j], targets_whole[0,j], color=colors[j], label=self.fields[j])
@@ -85,16 +87,17 @@ class plotting_standard:
             
             plt.plot(np.linspace(0, 1), np.linspace(0,1), '--', color='orange')
             #plt.legend(yt.load(react_data.output_files[0]).field_list, colors=colors)
-            plt.legend(bbox_to_anchor=(1, 1))
+            #plt.legend(bbox_to_anchor=(1, 1))
+            plt.legend(loc='lower right')
             plt.xlabel('Prediction')
             plt.ylabel('Solution')
-            plt.savefig(self.output_dir + "/prediction_vs_solution.png", bbox_inches='tight')
+            plt.savefig(self.output_dir + "/prediction_vs_solution.eps", format='eps', bbox_inches='tight')
 
             plt.yscale("log")
             plt.xscale("log")
-            plt.ylim([1.e-28, 5.e0])
+            plt.ylim([1.e-16, 5.e0])
             plt.xlim([1.e-16, 5.e0])
-            plt.savefig(self.output_dir + "/prediction_vs_solution_log.png", bbox_inches='tight')
+            plt.savefig(self.output_dir + "/prediction_vs_solution_log.eps", format='eps', bbox_inches='tight')
 
         self.model.train()
 
